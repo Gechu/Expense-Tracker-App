@@ -3,10 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.database import Base, engine, get_db
-from app.routers import auth
-
-Base.metadata.create_all(bind=engine)
+from app.database import get_db
+from app.routers import auth, tabs, widgets
 
 app = FastAPI(title="Expense Tracker API")
 
@@ -19,6 +17,8 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(tabs.router)
+app.include_router(widgets.router)
 
 
 @app.get("/health")
