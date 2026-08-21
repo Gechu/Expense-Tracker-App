@@ -1,0 +1,480 @@
+/* ==========================================================================
+   BIBLIOTEKA STYLÓW — na podstawie wizualizacji "Ledger" (Wizaulizacja
+   frontendu/Budget App v2.dc.html), wariant "Glass" (jasny + ciemny).
+
+   Struktura pliku:
+   1. Fonty
+   2. Tokeny (zmienne CSS) - ciemny motyw (domyślny) + jasny ([data-theme="light"])
+   3. Reset / tło aplikacji
+   4. Dekoracyjne "orby" w tle
+   5. Panel (karta "szklana")
+   6. Typografia pomocnicza (meta, label, nagłówki)
+   7. Formularze (input, pola) + animacje wejścia/fokusu
+   8. Przyciski (główny/CTA, ghost, segmented control z animowanym suwakiem)
+   9. Tagi/pigułki
+   10. Przełącznik motywu jasny/ciemny
+   11. Ekran logowania (wyśrodkowana karta)
+   ========================================================================== */
+
+/* 1. Fonty — Instrument Sans do tekstu, IBM Plex Mono do etykiet/liczb */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+/* 2. Tokeny — jedno miejsce, w którym zmieniasz cały wygląd aplikacji.
+   Na razie tylko wariant ciemny; jasny motyw można dodać jako drugi blok
+   zmiennych (np. pod [data-theme="light"]) bez zmiany reszty pliku. */
+:root {
+  /* Mówi przeglądarce, żeby natywne elementy (pola, scrollbary) rysowała
+     w ciemnej wersji - inaczej pod spodem półprzezroczystych pól input
+     przebija domyślne jasne tło i robi się "brudno". Nadpisywane w jasnym
+     motywie niżej. */
+  color-scheme: dark;
+
+  /* Fonty */
+  --font-sans: 'Instrument Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  /* Promienie zaokrągleń */
+  --radius: 20px;
+  --radius-lg: 26px;
+
+  /* Tło całej aplikacji (ciemny gradient + prawie czarna baza) */
+  --bg: radial-gradient(1200px 700px at 10% -12%, #101c26 0%, transparent 60%),
+    radial-gradient(900px 600px at 96% 6%, #131329 0%, transparent 55%), #06080d;
+
+  /* Kolory tekstu */
+  --text: #eef1f6;
+  --text-dim: rgba(238, 241, 246, 0.62);
+  --text-faint: rgba(238, 241, 246, 0.36);
+  --hairline: rgba(255, 255, 255, 0.075);
+
+  /* "Szklany" panel (karty, sidebar) */
+  --panel-bg: linear-gradient(158deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.028));
+  --panel-border: rgba(255, 255, 255, 0.1);
+  --panel-shadow: 0 28px 60px -38px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.13);
+  --panel-blur: blur(26px) saturate(150%);
+
+  /* Obrys dla małych, "samotnych" elementów (np. przycisku motywu) - panel-border
+     bazuje na bieli i na jasnym tle staje się niewidoczny, więc to osobny token. */
+  --chip-border: rgba(255, 255, 255, 0.14);
+
+  /* Pola formularzy */
+  --input-bg: rgba(0, 0, 0, 0.28);
+  --input-border: rgba(255, 255, 255, 0.11);
+  --hover-bg: rgba(255, 255, 255, 0.07);
+
+  /* "Pigułka" segmented control - jaśniejsza niż tor, w którym jeździ */
+  --seg-thumb-bg: linear-gradient(150deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06));
+  --seg-thumb-shadow: none;
+
+  /* Przycisk główny (CTA) - gradient miętowy */
+  --cta-bg: linear-gradient(150deg, rgba(159, 214, 196, 0.95), rgba(96, 155, 145, 0.9));
+  --cta-fg: #06120f;
+  --cta-shadow: 0 16px 36px -20px rgba(159, 214, 196, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+  /* Logo / marka */
+  --brand-gradient: linear-gradient(150deg, #6fd6b4, #35887a);
+  --brand-shadow: 0 8px 20px -10px rgba(63, 191, 148, 0.9);
+
+  /* Paleta akcentów do kolorowania zakładek/widgetów (do wykorzystania później) */
+  --c-mint: #3fbf94;
+  --c-amber: #e8963c;
+  --c-azure: #5b93e0;
+  --c-gold: #d9b234;
+  --c-rose: #e07aa8;
+  --c-slate: #8c95a6;
+  --c-violet: #9b7ce8;
+}
+
+/* Jasny wariant tych samych tokenów - włączany atrybutem data-theme="light"
+   na <html> (patrz theme.ts / ThemeToggle.tsx). Nazwy zmiennych są identyczne,
+   więc reszta pliku (panel, input, btn-cta...) nie wie nawet, że motyw się zmienił. */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: radial-gradient(1100px 640px at 8% -14%, #d9ece8 0%, transparent 58%),
+    radial-gradient(900px 620px at 98% 4%, #e2e4f6 0%, transparent 55%), #eef1f2;
+
+  --text: #141a20;
+  --text-dim: rgba(20, 26, 32, 0.62);
+  --text-faint: rgba(20, 26, 32, 0.42);
+  --hairline: rgba(20, 26, 32, 0.09);
+
+  --panel-bg: linear-gradient(158deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.55));
+  --panel-border: rgba(255, 255, 255, 0.9);
+  --panel-shadow: 0 26px 55px -34px rgba(24, 40, 60, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --panel-blur: blur(24px) saturate(160%);
+  --chip-border: rgba(20, 26, 32, 0.14);
+
+  /* Ciemniejszy (nie biały) odcień - w ciemnym motywie input-bg jest
+     przyciemnieniem tła pod spodem, więc w jasnym motywie to musi być
+     przyciemnienie, a nie kolejna warstwa bieli na białym panelu -
+     inaczej pola i tor segmented control znikają na jasnym tle. */
+  --input-bg: rgba(20, 26, 32, 0.05);
+  --input-border: rgba(20, 26, 32, 0.14);
+  --hover-bg: rgba(20, 26, 32, 0.06);
+
+  --seg-thumb-bg: #ffffff;
+  --seg-thumb-shadow: 0 1px 3px rgba(24, 40, 60, 0.18);
+
+  --cta-bg: linear-gradient(150deg, #3fbf94, #2c8f74);
+  --cta-fg: #ffffff;
+  --cta-shadow: 0 16px 34px -20px rgba(44, 143, 116, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* 3. Reset / tło aplikacji */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* płynne przejście kolorów przy przełączaniu jasny/ciemny */
+  transition: background 0.4s ease, color 0.4s ease;
+}
+
+input,
+button,
+select {
+  font-family: inherit;
+}
+
+input:focus {
+  outline: none;
+}
+
+/* 4. Dekoracyjne "orby" - rozmyte plamy koloru unoszące się w tle.
+   Kontener musi mieć position: relative i overflow: hidden. */
+.orb-field {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.32;
+  filter: blur(120px);
+}
+
+.orb--1 {
+  top: -14vh;
+  left: -6vw;
+  width: 44vw;
+  height: 44vw;
+  background: #2f9c86;
+  animation: drift1 26s ease-in-out infinite;
+}
+
+.orb--2 {
+  bottom: -18vh;
+  right: -8vw;
+  width: 40vw;
+  height: 40vw;
+  background: #4a5bb0;
+  animation: drift2 32s ease-in-out infinite;
+}
+
+.orb--3 {
+  top: 34vh;
+  left: 46vw;
+  width: 28vw;
+  height: 28vw;
+  background: #a1628a;
+  animation: drift3 38s ease-in-out infinite;
+}
+
+@keyframes drift1 {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6vw, -5vh, 0) scale(1.18);
+  }
+}
+
+@keyframes drift2 {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.12);
+  }
+  50% {
+    transform: translate3d(-6vw, 6vh, 0) scale(0.9);
+  }
+}
+
+@keyframes drift3 {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(0.95);
+  }
+  50% {
+    transform: translate3d(4vw, 7vh, 0) scale(1.2);
+  }
+}
+
+/* 5. Panel - bazowa "szklana karta" używana wszędzie (auth, sidebar, widgety) */
+.panel {
+  position: relative;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: var(--panel-blur);
+  -webkit-backdrop-filter: var(--panel-blur);
+}
+
+.panel--lg {
+  border-radius: var(--radius-lg);
+}
+
+/* 6. Typografia pomocnicza */
+
+/* Drobny, technicznie wyglądający tekst (daty, podpisy) */
+.text-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+/* Etykieta pola formularza - wersaliki, mono, rozstrzelone litery */
+.text-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.text-dim {
+  color: var(--text-dim);
+}
+
+/* Logo: kolorowy kwadrat + nazwa marki */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 11px;
+  background: var(--brand-gradient);
+  box-shadow: var(--brand-shadow);
+}
+
+.brand-mark--sm {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+}
+
+.brand-word {
+  font-size: 16.5px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* 7. Formularze */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+/* Animacja "wjazdu" - do pól, które pojawiają się/znikają warunkowo
+   (np. pole "Imię" widoczne tylko przy rejestracji) */
+.field-animate {
+  animation: rise 0.28s ease both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.input {
+  width: 100%;
+  padding: 12px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+/* Delikatna poświata przy fokusie zamiast domyślnej niebieskiej ramki */
+.input:focus {
+  border-color: rgba(159, 214, 196, 0.55);
+  box-shadow: 0 0 0 3px rgba(63, 191, 148, 0.16);
+}
+
+/* 8. Przyciski */
+
+/* Główny przycisk akcji (submit formularza itp.) */
+.btn-cta {
+  width: 100%;
+  padding: 15px 18px;
+  border-radius: 13px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: var(--cta-bg);
+  color: var(--cta-fg);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  box-shadow: var(--cta-shadow);
+}
+
+.btn-cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Drugorzędny, "przezroczysty" przycisk */
+.btn-ghost {
+  padding: 10px 15px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* Segmented control - np. przełącznik "Zaloguj się / Załóż konto".
+   .seg-thumb to osobny element - kolorowe "tło" podążające za aktywną
+   zakładką, przesuwane transformem (position: relative na .seg jest
+   wymagany, żeby thumb pozycjonował się względem niego). */
+.seg {
+  position: relative;
+  display: flex;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--hairline);
+}
+
+.seg-thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 6px);
+  border-radius: 9px;
+  border: 1px solid var(--panel-border);
+  background: var(--seg-thumb-bg);
+  box-shadow: var(--seg-thumb-shadow);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
+}
+
+.seg-thumb.is-register {
+  transform: translateX(calc(100% + 4px));
+}
+
+.seg-btn {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.seg-btn.is-active {
+  color: var(--text);
+}
+
+/* 9. Tagi / pigułki (np. słowa kluczowe pod nagłówkiem) */
+.tag {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--panel-border);
+  color: var(--text-faint);
+}
+
+/* 10. Przełącznik motywu jasny/ciemny - stały przycisk w rogu ekranu.
+   Używa --chip-border i własnego cienia (zamiast --panel-border/--panel-shadow),
+   bo mały, samotny element potrzebuje mocniejszego obrysu, żeby był widoczny
+   na tle o zbliżonym kolorze - inaczej niż duże panele, które odcinają się
+   dzięki otoczeniu i głębszemu cieniowi. */
+.theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px solid var(--chip-border);
+  background: var(--panel-bg);
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: var(--panel-blur);
+  -webkit-backdrop-filter: var(--panel-blur);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.3s ease, border-color 0.3s ease;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.06);
+}
+
+/* 11. Ekran logowania - logowanie/rejestracja to jedyny, wyśrodkowany
+   element ekranu (karta o stałej szerokości), a nie połowa layoutu. */
+.auth-center {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 40px 20px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 32px 30px;
+  animation: rise 0.35s ease both;
+}
