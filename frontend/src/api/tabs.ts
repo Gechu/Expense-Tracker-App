@@ -1,4 +1,5 @@
 import { request } from './client'
+import type { Widget } from './widgets'
 
 export interface Tab {
   id: number
@@ -6,7 +7,7 @@ export interface Tab {
   color: string
   position: number
   created_at: string
-  widgets: unknown[]
+  widgets: Widget[]
 }
 
 export function listTabs() {

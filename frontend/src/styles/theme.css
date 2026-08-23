@@ -16,6 +16,7 @@
    11. Ekran logowania (wyśrodkowana karta)
    12. Powłoka aplikacji (sidebar z zakładkami + treść)
    13. Modal (tworzenie/edycja zakładki)
+   14. Karty pól (widgety) - pojedyncze pole, tabela
    ========================================================================== */
 
 /* 1. Fonty — Instrument Sans do tekstu, IBM Plex Mono do etykiet/liczb */
@@ -58,6 +59,10 @@
   /* Obrys dla małych, "samotnych" elementów (np. przycisku motywu) - panel-border
      bazuje na bieli i na jasnym tle staje się niewidoczny, więc to osobny token. */
   --chip-border: rgba(255, 255, 255, 0.14);
+
+  /* Górna krawędź karty pola - w ciemnym motywie odrobinę jaśniejsza niż
+     zwykły panel-border, żeby karty lekko odcinały się od tła. */
+  --card-top-border: rgba(255, 255, 255, 0.16);
 
   /* Pola formularzy */
   --input-bg: rgba(0, 0, 0, 0.28);
@@ -113,6 +118,7 @@
   --panel-shadow: 0 26px 55px -34px rgba(24, 40, 60, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --panel-blur: blur(24px) saturate(160%);
   --chip-border: rgba(20, 26, 32, 0.14);
+  --card-top-border: var(--panel-border);
 
   /* Ciemniejszy (nie biały) odcień - w ciemnym motywie input-bg jest
      przyciemnieniem tła pod spodem, więc w jasnym motywie to musi być
@@ -846,4 +852,199 @@ input:focus {
   color: #e0655f;
   font-size: 12.5px;
   font-weight: 500;
+}
+
+/* 14. Karty pól (widgety) - siatka kart w treści zakładki */
+/* Układ typu "murek" (CSS columns) zamiast grida - zwykły grid zostawia
+   puste miejsca pod krótszymi kartami, bo nie potrafi ich "upakować" w
+   luki po sąsiednich, wyższych kartach. Kolumny renderują karty jedna
+   pod drugą i same przechodzą do kolejnej kolumny, więc luk nie ma. */
+.fields-grid {
+  column-width: 286px;
+  column-gap: 15px;
+}
+
+.field-card {
+  position: relative;
+  overflow: hidden;
+  padding: 19px 20px;
+  border-top: 1px solid var(--card-top-border);
+  break-inside: avoid;
+  margin-bottom: 15px;
+}
+
+.field-card-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 15px;
+}
+
+.field-title {
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Kolorowa "pigułka" z typem pola (Pole / Tabela) - kolor pochodzi
+   z koloru zakładki, więc jest ustawiany inline (style={{...}}) */
+.field-badge {
+  margin-left: auto;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 4px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.field-icon-btn {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-faint);
+  transition: background 0.15s ease;
+}
+
+.field-icon-btn:hover {
+  background: var(--hover-bg);
+}
+
+.field-currency {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.field-value-big {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.field-foot {
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+}
+
+.field-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--hairline);
+  cursor: pointer;
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  width: 100%;
+  text-align: left;
+}
+
+.field-row-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-row-date {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-faint);
+}
+
+.field-row-amount {
+  flex: none;
+  min-width: 70px;
+  text-align: right;
+  font-size: 13.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.add-entry-btn {
+  width: 100%;
+  margin-top: 9px;
+  padding: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px dashed var(--panel-border);
+  background: transparent;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Wiersz z sumą tabeli - tło i obwódka w kolorze zakładki (inline style) */
+.field-sum-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 13px;
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+
+.field-sum-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.field-sum-value {
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Karta-placeholder z pustym stanem wewnątrz zakładki (brak pól) */
+.fields-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  max-width: 380px;
+  margin: 20px auto;
+  padding: 48px 36px;
 }

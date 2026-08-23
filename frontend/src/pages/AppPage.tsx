@@ -1,18 +1,31 @@
-import { Menu } from 'lucide-react'
+import { Menu, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { logout, me, type User } from '../api/auth'
 import { listTabs, type Tab } from '../api/tabs'
+import { type Widget, type WidgetEntry } from '../api/widgets'
+import AddFieldModal from '../components/AddFieldModal'
+import EntryModal from '../components/EntryModal'
 import Sidebar from '../components/Sidebar'
 import TabModal from '../components/TabModal'
+import WidgetCard from '../components/WidgetCard'
+import WidgetSettingsModal from '../components/WidgetSettingsModal'
+
+interface EntryModalState {
+  widget: Widget
+  entry: WidgetEntry | null
+}
 
 export default function AppPage() {
   const [user, setUser] = useState<User | null>(null)
   const [tabs, setTabs] = useState<Tab[]>([])
   const [activeTabId, setActiveTabId] = useState<number | null>(null)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [modalTab, setModalTab] = useState<Tab | null>(null)
+  const [tabModalOpen, setTabModalOpen] = useState(false)
+  const [tabModalTarget, setTabModalTarget] = useState<Tab | null>(null)
   const [navOpen, setNavOpen] = useState(false)
+  const [addFieldOpen, setAddFieldOpen] = useState(false)
+  const [widgetSettingsTarget, setWidgetSettingsTarget] = useState<Widget | null>(null)
+  const [entryModal, setEntryModal] = useState<EntryModalState | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -32,37 +45,42 @@ export default function AppPage() {
     }
   }, [navigate])
 
+  async function refreshTabs() {
+    const fresh = await listTabs()
+    setTabs(fresh)
+  }
+
   async function handleLogout() {
     await logout()
     navigate('/login', { replace: true })
   }
 
-  function openCreateModal() {
-    setModalTab(null)
-    setModalOpen(true)
+  function openCreateTabModal() {
+    setTabModalTarget(null)
+    setTabModalOpen(true)
   }
 
-  function openEditModal(tab: Tab) {
-    setModalTab(tab)
-    setModalOpen(true)
+  function openEditTabModal(tab: Tab) {
+    setTabModalTarget(tab)
+    setTabModalOpen(true)
   }
 
-  function handleSaved(saved: Tab) {
+  function handleTabSaved(saved: Tab) {
     setTabs((current) => {
       const exists = current.some((t) => t.id === saved.id)
       return exists ? current.map((t) => (t.id === saved.id ? saved : t)) : [...current, saved]
     })
     setActiveTabId(saved.id)
-    setModalOpen(false)
+    setTabModalOpen(false)
   }
 
-  function handleDeleted(id: number) {
+  function handleTabDeleted(id: number) {
     setTabs((current) => {
       const next = current.filter((t) => t.id !== id)
       setActiveTabId((currentActive) => (currentActive === id ? (next[0]?.id ?? null) : currentActive))
       return next
     })
-    setModalOpen(false)
+    setTabModalOpen(false)
   }
 
   if (!user) {
@@ -70,6 +88,8 @@ export default function AppPage() {
   }
 
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? null
+  const supportedWidgets =
+    activeTab?.widgets.filter((w) => w.type === 'single_value' || w.type === 'table') ?? []
 
   return (
     <div className="shell">
@@ -79,8 +99,8 @@ export default function AppPage() {
         tabs={tabs}
         activeTabId={activeTabId}
         onSelect={setActiveTabId}
-        onAddTab={openCreateModal}
-        onEditTab={openEditModal}
+        onAddTab={openCreateTabModal}
+        onEditTab={openEditTabModal}
         user={user}
         onLogout={handleLogout}
         isOpen={navOpen}
@@ -105,9 +125,44 @@ export default function AppPage() {
                   {activeTab.name}
                 </h1>
               </div>
+              <button type="button" className="btn-cta" style={{ width: 'auto' }} onClick={() => setAddFieldOpen(true)}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Plus size={14} />
+                  Dodaj pole
+                </span>
+              </button>
             </header>
+
             <div className="main-content">
-              <p className="text-dim">Tutaj pojawią się pola tej zakładki.</p>
+              {/* Formuły i waluty jeszcze nie mają UI - budujemy w kolejnym kroku,
+                  na razie pokazujemy tylko pojedyncze pola i tabele */}
+              {supportedWidgets.length === 0 ? (
+                <div className="panel panel--lg fields-empty">
+                  <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>Brak pól w tej zakładce</h2>
+                  <p className="text-dim" style={{ margin: 0 }}>
+                    Dodaj pojedyncze pole albo tabelę, żeby zacząć zbierać tu dane.
+                  </p>
+                  <button type="button" className="btn-cta" style={{ width: 'auto', marginTop: 8 }} onClick={() => setAddFieldOpen(true)}>
+                    + Dodaj pole
+                  </button>
+                </div>
+              ) : (
+                <div className="fields-grid">
+                  {supportedWidgets
+                    .sort((a, b) => a.position - b.position)
+                    .map((widget) => (
+                      <WidgetCard
+                        key={widget.id}
+                        widget={widget}
+                        color={activeTab.color}
+                        onOpenSettings={() => setWidgetSettingsTarget(widget)}
+                        onAddEntry={() => setEntryModal({ widget, entry: null })}
+                        onEditEntry={(entry) => setEntryModal({ widget, entry })}
+                        onChanged={refreshTabs}
+                      />
+                    ))}
+                </div>
+              )}
             </div>
           </>
         ) : (
@@ -117,7 +172,7 @@ export default function AppPage() {
               <p className="text-dim" style={{ margin: 0 }}>
                 Dodaj pierwszą, żeby zacząć układać swoje finanse.
               </p>
-              <button type="button" className="btn-cta" style={{ width: 'auto', marginTop: 8 }} onClick={openCreateModal}>
+              <button type="button" className="btn-cta" style={{ width: 'auto', marginTop: 8 }} onClick={openCreateTabModal}>
                 + Nowa zakładka
               </button>
             </div>
@@ -125,13 +180,50 @@ export default function AppPage() {
         )}
       </main>
 
-      {modalOpen && (
+      {tabModalOpen && (
         <TabModal
-          tab={modalTab}
+          tab={tabModalTarget}
           nextPosition={tabs.length}
-          onClose={() => setModalOpen(false)}
-          onSaved={handleSaved}
-          onDeleted={handleDeleted}
+          onClose={() => setTabModalOpen(false)}
+          onSaved={handleTabSaved}
+          onDeleted={handleTabDeleted}
+        />
+      )}
+
+      {addFieldOpen && activeTab && (
+        <AddFieldModal
+          tabId={activeTab.id}
+          nextPosition={activeTab.widgets.length}
+          onClose={() => setAddFieldOpen(false)}
+          onCreated={() => {
+            setAddFieldOpen(false)
+            refreshTabs()
+          }}
+        />
+      )}
+
+      {widgetSettingsTarget && (
+        <WidgetSettingsModal
+          widget={widgetSettingsTarget}
+          onClose={() => setWidgetSettingsTarget(null)}
+          onChanged={() => {
+            setWidgetSettingsTarget(null)
+            refreshTabs()
+          }}
+        />
+      )}
+
+      {entryModal && (
+        <EntryModal
+          widgetId={entryModal.widget.id}
+          entry={entryModal.entry}
+          showLabel={entryModal.widget.type === 'table'}
+          nextPosition={entryModal.widget.entries.length}
+          onClose={() => setEntryModal(null)}
+          onChanged={() => {
+            setEntryModal(null)
+            refreshTabs()
+          }}
         />
       )}
     </div>
