@@ -11,27 +11,51 @@ export interface WidgetEntry {
   created_at: string
 }
 
+/** Kształt "config" dla type="formula" - lista składników sumy/różnicy */
+export interface FormulaTerm {
+  widget_id: number
+  sign: '+' | '-'
+}
+
+export interface FormulaConfig {
+  terms: FormulaTerm[]
+}
+
+/** Kształt "config" dla type="currency" - kurs wpisywany ręcznie */
+export interface CurrencyConfig {
+  amount: number
+  from_currency: string
+  to_currency: string
+  rate: number
+}
+
 export interface Widget {
   id: number
   tab_id: number
   type: WidgetType
   label: string
   position: number
-  config: Record<string, unknown> | null
+  config: FormulaConfig | CurrencyConfig | null
   created_at: string
   updated_at: string | null
   entries: WidgetEntry[]
   value: string | null
 }
 
-export function createWidget(tabId: number, type: WidgetType, label: string, position = 0) {
+export function createWidget(
+  tabId: number,
+  type: WidgetType,
+  label: string,
+  position = 0,
+  config?: FormulaConfig | CurrencyConfig,
+) {
   return request<Widget>(`/tabs/${tabId}/widgets`, {
     method: 'POST',
-    body: JSON.stringify({ type, label, position }),
+    body: JSON.stringify({ type, label, position, config }),
   })
 }
 
-export function updateWidget(id: number, patch: Partial<Pick<Widget, 'label' | 'position'>>) {
+export function updateWidget(id: number, patch: Partial<Pick<Widget, 'label' | 'position' | 'config'>>) {
   return request<Widget>(`/widgets/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(patch),

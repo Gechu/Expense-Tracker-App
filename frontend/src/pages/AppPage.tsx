@@ -88,8 +88,9 @@ export default function AppPage() {
   }
 
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? null
-  const supportedWidgets =
-    activeTab?.widgets.filter((w) => w.type === 'single_value' || w.type === 'table') ?? []
+  const widgetLabels = Object.fromEntries(
+    tabs.flatMap((t) => t.widgets.map((w) => [w.id, w.label] as const)),
+  )
 
   return (
     <div className="shell">
@@ -134,9 +135,7 @@ export default function AppPage() {
             </header>
 
             <div className="main-content">
-              {/* Formuły i waluty jeszcze nie mają UI - budujemy w kolejnym kroku,
-                  na razie pokazujemy tylko pojedyncze pola i tabele */}
-              {supportedWidgets.length === 0 ? (
+              {activeTab.widgets.length === 0 ? (
                 <div className="panel panel--lg fields-empty">
                   <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>Brak pól w tej zakładce</h2>
                   <p className="text-dim" style={{ margin: 0 }}>
@@ -148,13 +147,14 @@ export default function AppPage() {
                 </div>
               ) : (
                 <div className="fields-grid">
-                  {supportedWidgets
+                  {[...activeTab.widgets]
                     .sort((a, b) => a.position - b.position)
                     .map((widget) => (
                       <WidgetCard
                         key={widget.id}
                         widget={widget}
                         color={activeTab.color}
+                        widgetLabels={widgetLabels}
                         onOpenSettings={() => setWidgetSettingsTarget(widget)}
                         onAddEntry={() => setEntryModal({ widget, entry: null })}
                         onEditEntry={(entry) => setEntryModal({ widget, entry })}
@@ -194,6 +194,7 @@ export default function AppPage() {
         <AddFieldModal
           tabId={activeTab.id}
           nextPosition={activeTab.widgets.length}
+          tabs={tabs}
           onClose={() => setAddFieldOpen(false)}
           onCreated={() => {
             setAddFieldOpen(false)
@@ -205,6 +206,7 @@ export default function AppPage() {
       {widgetSettingsTarget && (
         <WidgetSettingsModal
           widget={widgetSettingsTarget}
+          tabs={tabs}
           onClose={() => setWidgetSettingsTarget(null)}
           onChanged={() => {
             setWidgetSettingsTarget(null)

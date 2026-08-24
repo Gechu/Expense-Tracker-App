@@ -1,35 +1,60 @@
-import { Table2, Type, X } from 'lucide-react'
+import { ArrowLeftRight, Sigma, Table2, Type, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { createEntry, createWidget, type WidgetType } from '../api/widgets'
+import type { Tab } from '../api/tabs'
+import FormulaTermsField, { termsToConfig, type ReferenceOption } from './FormulaTermsField'
 
 const TYPE_OPTIONS: { type: WidgetType; label: string; hint: string; icon: typeof Type }[] = [
   { type: 'single_value', label: 'Pojedyncze pole', hint: 'opis, kwota, data', icon: Type },
   { type: 'table', label: 'Tabela', hint: 'lista wpisów + suma', icon: Table2 },
+  { type: 'formula', label: 'Formuła', hint: 'wynik z innych pól', icon: Sigma },
+  { type: 'currency', label: 'Waluta', hint: 'kwota → kwota', icon: ArrowLeftRight },
 ]
 
 interface AddFieldModalProps {
   tabId: number
   nextPosition: number
+  /** wszystkie zakładki - do wyboru składników formuły spoza bieżącej zakładki */
+  tabs: Tab[]
   onClose: () => void
   onCreated: () => void
 }
 
-export default function AddFieldModal({ tabId, nextPosition, onClose, onCreated }: AddFieldModalProps) {
+export default function AddFieldModal({ tabId, nextPosition, tabs, onClose, onCreated }: AddFieldModalProps) {
   const [type, setType] = useState<WidgetType>('single_value')
   const [label, setLabel] = useState('')
   const [amount, setAmount] = useState('')
   const [entryDate, setEntryDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [fromCurrency, setFromCurrency] = useState('EUR')
+  const [toCurrency, setToCurrency] = useState('PLN')
+  const [rate, setRate] = useState('')
+  const [terms, setTerms] = useState<{ widgetId: number | ''; sign: '+' | '-' }[]>([{ widgetId: '', sign: '+' }])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  const referenceOptions: ReferenceOption[] = tabs.flatMap((tab) =>
+    tab.widgets.filter((w) => w.type !== 'formula').map((w) => ({ id: w.id, label: w.label, tabName: tab.name })),
+  )
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setError(null)
     setBusy(true)
     try {
-      const widget = await createWidget(tabId, type, label, nextPosition)
       if (type === 'single_value') {
+        const widget = await createWidget(tabId, type, label, nextPosition)
         await createEntry(widget.id, { amount: amount || 0, entry_date: entryDate })
+      } else if (type === 'currency') {
+        await createWidget(tabId, type, label, nextPosition, {
+          amount: Number(amount || 0),
+          from_currency: fromCurrency,
+          to_currency: toCurrency,
+          rate: Number(rate || 0),
+        })
+      } else if (type === 'formula') {
+        await createWidget(tabId, type, label, nextPosition, { terms: termsToConfig(terms) })
+      } else {
+        await createWidget(tabId, type, label, nextPosition)
       }
       onCreated()
     } catch (err) {
@@ -51,7 +76,7 @@ export default function AddFieldModal({ tabId, nextPosition, onClose, onCreated 
         <form onSubmit={handleSubmit}>
           <div style={{ marginTop: 18 }}>
             <span className="text-label">Typ</span>
-            <div style={{ display: 'flex', gap: 9, marginTop: 9 }}>
+            <div style={{ display: 'flex', gap: 9, marginTop: 9, flexWrap: 'wrap' }}>
               {TYPE_OPTIONS.map((option) => {
                 const Icon = option.icon
                 const active = option.type === type
@@ -62,7 +87,7 @@ export default function AddFieldModal({ tabId, nextPosition, onClose, onCreated 
                     className="panel"
                     onClick={() => setType(option.type)}
                     style={{
-                      flex: 1,
+                      flex: '1 1 calc(50% - 5px)',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -116,6 +141,69 @@ export default function AddFieldModal({ tabId, nextPosition, onClose, onCreated 
                   onChange={(e) => setEntryDate(e.target.value)}
                 />
               </label>
+            </div>
+          )}
+
+          {type === 'currency' && (
+            <div className="field-animate">
+              <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+                <label className="field" style={{ flex: 1 }}>
+                  <span className="text-label">Kwota</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="input"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.00"
+                    required
+                  />
+                </label>
+                <label className="field" style={{ flex: 1 }}>
+                  <span className="text-label">Kurs</span>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    className="input"
+                    value={rate}
+                    onChange={(e) => setRate(e.target.value)}
+                    placeholder="np. 4.20"
+                    required
+                  />
+                </label>
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+                <label className="field" style={{ flex: 1 }}>
+                  <span className="text-label">Z waluty</span>
+                  <input
+                    type="text"
+                    className="input"
+                    value={fromCurrency}
+                    onChange={(e) => setFromCurrency(e.target.value.toUpperCase())}
+                    placeholder="EUR"
+                    maxLength={8}
+                    required
+                  />
+                </label>
+                <label className="field" style={{ flex: 1 }}>
+                  <span className="text-label">Na walutę</span>
+                  <input
+                    type="text"
+                    className="input"
+                    value={toCurrency}
+                    onChange={(e) => setToCurrency(e.target.value.toUpperCase())}
+                    placeholder="PLN"
+                    maxLength={8}
+                    required
+                  />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {type === 'formula' && (
+            <div className="field-animate">
+              <FormulaTermsField terms={terms} onChange={setTerms} options={referenceOptions} />
             </div>
           )}
 

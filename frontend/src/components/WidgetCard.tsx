@@ -1,18 +1,35 @@
 import { Plus, Settings, X } from 'lucide-react'
 import type { MouseEvent } from 'react'
 import { formatAmount, formatDate } from '../lib/format'
-import { deleteEntry, type Widget, type WidgetEntry } from '../api/widgets'
+import { deleteEntry, type CurrencyConfig, type FormulaConfig, type Widget, type WidgetEntry } from '../api/widgets'
+
+const BADGES: Record<Widget['type'], string> = {
+  single_value: 'Pole',
+  table: 'Tabela',
+  formula: 'Formuła',
+  currency: 'Waluta',
+}
 
 interface WidgetCardProps {
   widget: Widget
   color: string
+  /** id widgetu -> jego nazwa, do podpisania składników formuły */
+  widgetLabels: Record<number, string>
   onOpenSettings: () => void
   onAddEntry: () => void
   onEditEntry: (entry: WidgetEntry) => void
   onChanged: () => void
 }
 
-export default function WidgetCard({ widget, color, onOpenSettings, onAddEntry, onEditEntry, onChanged }: WidgetCardProps) {
+export default function WidgetCard({
+  widget,
+  color,
+  widgetLabels,
+  onOpenSettings,
+  onAddEntry,
+  onEditEntry,
+  onChanged,
+}: WidgetCardProps) {
   const badgeStyle = {
     color,
     borderColor: `${color}33`,
@@ -27,6 +44,8 @@ export default function WidgetCard({ widget, color, onOpenSettings, onAddEntry, 
   }
 
   const soleEntry = widget.entries[0] ?? null
+  const currencyConfig = widget.type === 'currency' ? (widget.config as CurrencyConfig | null) : null
+  const formulaConfig = widget.type === 'formula' ? (widget.config as FormulaConfig | null) : null
 
   return (
     <div className="panel field-card">
@@ -34,7 +53,7 @@ export default function WidgetCard({ widget, color, onOpenSettings, onAddEntry, 
         <span className="tab-dot" style={{ background: color, width: 8, height: 8 }} />
         <span className="field-title">{widget.label}</span>
         <span className="field-badge" style={badgeStyle}>
-          {widget.type === 'single_value' ? 'Pole' : 'Tabela'}
+          {BADGES[widget.type]}
         </span>
         <button type="button" className="field-icon-btn" onClick={onOpenSettings} aria-label="Ustawienia pola">
           <Settings size={12} />
@@ -101,6 +120,59 @@ export default function WidgetCard({ widget, color, onOpenSettings, onAddEntry, 
 
           <div className="field-foot">
             {widget.updated_at ? `zaktualizowano ${formatDate(widget.updated_at.slice(0, 10))}` : ''}
+          </div>
+        </div>
+      )}
+
+      {widget.type === 'formula' && (
+        <div>
+          <span className="field-result" style={{ color }}>
+            {formatAmount(widget.value ?? 0)}
+          </span>
+
+          <div className="field-tokens">
+            {(formulaConfig?.terms ?? []).map((term, index) => (
+              <span
+                key={index}
+                className="field-token"
+                style={{ border: `1px solid ${color}3a`, background: `${color}20` }}
+              >
+                {term.sign === '-' ? '−' : '+'} {widgetLabels[term.widget_id] ?? 'usunięte pole'}
+              </span>
+            ))}
+            {(formulaConfig?.terms ?? []).length === 0 && (
+              <span className="text-meta">brak składników - edytuj pole, żeby je dodać</span>
+            )}
+          </div>
+
+          <div className="field-foot-split">
+            <span>{widget.updated_at ? `na żywo od ${formatDate(widget.updated_at.slice(0, 10))}` : ''}</span>
+            <span>na żywo</span>
+          </div>
+        </div>
+      )}
+
+      {widget.type === 'currency' && currencyConfig && (
+        <div>
+          <div className="field-fx-grid">
+            <div className="field-fx-side">
+              <span className="field-fx-amount">{formatAmount(currencyConfig.amount)}</span>
+              <span className="field-fx-tag">{currencyConfig.from_currency}</span>
+            </div>
+            <span style={{ fontSize: 16, color }}>→</span>
+            <div className="field-fx-side field-fx-side--right">
+              <span className="field-result" style={{ fontSize: 22, color }}>
+                {formatAmount(widget.value ?? 0)}
+              </span>
+              <span className="field-fx-tag">{currencyConfig.to_currency}</span>
+            </div>
+          </div>
+
+          <div className="field-foot-split">
+            <span>
+              1 {currencyConfig.from_currency} = {formatAmount(currencyConfig.rate)} {currencyConfig.to_currency}
+            </span>
+            <span>{widget.updated_at ? formatDate(widget.updated_at.slice(0, 10)) : ''}</span>
           </div>
         </div>
       )}
