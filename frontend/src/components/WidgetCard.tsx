@@ -2,6 +2,7 @@ import { Plus, Settings, X } from 'lucide-react'
 import type { MouseEvent } from 'react'
 import { formatAmount, formatDate } from '../lib/format'
 import { deleteEntry, type CurrencyConfig, type FormulaConfig, type Widget, type WidgetEntry } from '../api/widgets'
+import { OP_LABELS } from './FormulaBuilder'
 
 const BADGES: Record<Widget['type'], string> = {
   single_value: 'Pole',
@@ -130,18 +131,34 @@ export default function WidgetCard({
             {formatAmount(widget.value ?? 0)}
           </span>
 
-          <div className="field-tokens">
-            {(formulaConfig?.terms ?? []).map((term, index) => (
-              <span
-                key={index}
-                className="field-token"
-                style={{ border: `1px solid ${color}3a`, background: `${color}20` }}
-              >
-                {term.sign === '-' ? '−' : '+'} {widgetLabels[term.widget_id] ?? 'usunięte pole'}
-              </span>
-            ))}
-            {(formulaConfig?.terms ?? []).length === 0 && (
-              <span className="text-meta">brak składników - edytuj pole, żeby je dodać</span>
+          <div className="token-strip" style={{ marginTop: 16 }}>
+            {(formulaConfig?.tokens ?? []).map((token, index) => {
+              if (token.kind === 'field') {
+                return (
+                  <span
+                    key={index}
+                    className="token-field"
+                    style={{ border: `1px solid ${color}3a`, background: `${color}20` }}
+                  >
+                    {widgetLabels[token.widget_id] ?? 'usunięte pole'}
+                  </span>
+                )
+              }
+              if (token.kind === 'number') {
+                return (
+                  <span key={index} className="token-number">
+                    {token.value}
+                  </span>
+                )
+              }
+              return (
+                <span key={index} className="token-op">
+                  {OP_LABELS[token.value]}
+                </span>
+              )
+            })}
+            {(formulaConfig?.tokens ?? []).length === 0 && (
+              <span className="text-meta">brak formuły - edytuj pole, żeby ją zbudować</span>
             )}
           </div>
 

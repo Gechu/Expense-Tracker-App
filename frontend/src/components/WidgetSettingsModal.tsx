@@ -1,19 +1,28 @@
 import { X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { deleteWidget, updateWidget, type CurrencyConfig, type FormulaConfig, type Widget } from '../api/widgets'
+import {
+  deleteWidget,
+  updateWidget,
+  type CurrencyConfig,
+  type FormulaConfig,
+  type FormulaToken,
+  type Widget,
+} from '../api/widgets'
 import type { Tab } from '../api/tabs'
 import CurrencySelect from './CurrencySelect'
-import FormulaTermsField, { termsToConfig, type ReferenceOption } from './FormulaTermsField'
+import FormulaBuilder, { type ReferenceField } from './FormulaBuilder'
 import RateField from './RateField'
 
 interface WidgetSettingsModalProps {
   widget: Widget
+  /** kolor zakładki, do której należy edytowane pole */
+  color: string
   tabs: Tab[]
   onClose: () => void
   onChanged: () => void
 }
 
-export default function WidgetSettingsModal({ widget, tabs, onClose, onChanged }: WidgetSettingsModalProps) {
+export default function WidgetSettingsModal({ widget, color, tabs, onClose, onChanged }: WidgetSettingsModalProps) {
   const [label, setLabel] = useState(widget.label)
   const currencyConfig = widget.type === 'currency' ? (widget.config as CurrencyConfig | null) : null
   const formulaConfig = widget.type === 'formula' ? (widget.config as FormulaConfig | null) : null
@@ -22,20 +31,16 @@ export default function WidgetSettingsModal({ widget, tabs, onClose, onChanged }
   const [rate, setRate] = useState(String(currencyConfig?.rate ?? ''))
   const [fromCurrency, setFromCurrency] = useState(currencyConfig?.from_currency ?? 'EUR')
   const [toCurrency, setToCurrency] = useState(currencyConfig?.to_currency ?? 'PLN')
-  const [terms, setTerms] = useState<{ widgetId: number | ''; sign: '+' | '-' }[]>(
-    formulaConfig && formulaConfig.terms.length > 0
-      ? formulaConfig.terms.map((t) => ({ widgetId: t.widget_id, sign: t.sign }))
-      : [{ widgetId: '', sign: '+' }],
-  )
+  const [tokens, setTokens] = useState<FormulaToken[]>(formulaConfig?.tokens ?? [])
 
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  // formuła nie może odwoływać się do samej siebie ani do innych formuł
-  const referenceOptions: ReferenceOption[] = tabs.flatMap((tab) =>
+  // formuła nie może odwoływać się sama do siebie
+  const referenceFields: ReferenceField[] = tabs.flatMap((tab) =>
     tab.widgets
-      .filter((w) => w.type !== 'formula' && w.id !== widget.id)
-      .map((w) => ({ id: w.id, label: w.label, tabName: tab.name })),
+      .filter((w) => w.id !== widget.id)
+      .map((w) => ({ id: w.id, label: w.label, tabColor: tab.color, value: Number(w.value ?? 0) })),
   )
 
   async function handleSubmit(event: FormEvent) {
@@ -49,7 +54,7 @@ export default function WidgetSettingsModal({ widget, tabs, onClose, onChanged }
           config: { amount: Number(amount || 0), from_currency: fromCurrency, to_currency: toCurrency, rate: Number(rate || 0) },
         })
       } else if (widget.type === 'formula') {
-        await updateWidget(widget.id, { label, config: { terms: termsToConfig(terms) } })
+        await updateWidget(widget.id, { label, config: { tokens } })
       } else {
         await updateWidget(widget.id, { label })
       }
@@ -118,7 +123,7 @@ export default function WidgetSettingsModal({ widget, tabs, onClose, onChanged }
           )}
 
           {widget.type === 'formula' && (
-            <FormulaTermsField terms={terms} onChange={setTerms} options={referenceOptions} />
+            <FormulaBuilder tokens={tokens} onChange={setTokens} referenceFields={referenceFields} color={color} />
           )}
 
           {error && (

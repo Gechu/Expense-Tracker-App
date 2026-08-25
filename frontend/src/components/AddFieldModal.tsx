@@ -1,9 +1,9 @@
 import { ArrowLeftRight, Sigma, Table2, Type, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { createEntry, createWidget, type WidgetType } from '../api/widgets'
+import { createEntry, createWidget, type FormulaToken, type WidgetType } from '../api/widgets'
 import type { Tab } from '../api/tabs'
 import CurrencySelect from './CurrencySelect'
-import FormulaTermsField, { termsToConfig, type ReferenceOption } from './FormulaTermsField'
+import FormulaBuilder, { type ReferenceField } from './FormulaBuilder'
 import RateField from './RateField'
 
 const TYPE_OPTIONS: { type: WidgetType; label: string; hint: string; icon: typeof Type }[] = [
@@ -16,13 +16,15 @@ const TYPE_OPTIONS: { type: WidgetType; label: string; hint: string; icon: typeo
 interface AddFieldModalProps {
   tabId: number
   nextPosition: number
+  /** kolor bieżącej zakładki - pigułki formuły i podgląd wyniku */
+  color: string
   /** wszystkie zakładki - do wyboru składników formuły spoza bieżącej zakładki */
   tabs: Tab[]
   onClose: () => void
   onCreated: () => void
 }
 
-export default function AddFieldModal({ tabId, nextPosition, tabs, onClose, onCreated }: AddFieldModalProps) {
+export default function AddFieldModal({ tabId, nextPosition, color, tabs, onClose, onCreated }: AddFieldModalProps) {
   const [type, setType] = useState<WidgetType>('single_value')
   const [label, setLabel] = useState('')
   const [amount, setAmount] = useState('')
@@ -30,12 +32,12 @@ export default function AddFieldModal({ tabId, nextPosition, tabs, onClose, onCr
   const [fromCurrency, setFromCurrency] = useState('EUR')
   const [toCurrency, setToCurrency] = useState('PLN')
   const [rate, setRate] = useState('')
-  const [terms, setTerms] = useState<{ widgetId: number | ''; sign: '+' | '-' }[]>([{ widgetId: '', sign: '+' }])
+  const [tokens, setTokens] = useState<FormulaToken[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  const referenceOptions: ReferenceOption[] = tabs.flatMap((tab) =>
-    tab.widgets.filter((w) => w.type !== 'formula').map((w) => ({ id: w.id, label: w.label, tabName: tab.name })),
+  const referenceFields: ReferenceField[] = tabs.flatMap((tab) =>
+    tab.widgets.map((w) => ({ id: w.id, label: w.label, tabColor: tab.color, value: Number(w.value ?? 0) })),
   )
 
   async function handleSubmit(event: FormEvent) {
@@ -54,7 +56,7 @@ export default function AddFieldModal({ tabId, nextPosition, tabs, onClose, onCr
           rate: Number(rate || 0),
         })
       } else if (type === 'formula') {
-        await createWidget(tabId, type, label, nextPosition, { terms: termsToConfig(terms) })
+        await createWidget(tabId, type, label, nextPosition, { tokens })
       } else {
         await createWidget(tabId, type, label, nextPosition)
       }
@@ -172,7 +174,7 @@ export default function AddFieldModal({ tabId, nextPosition, tabs, onClose, onCr
 
           {type === 'formula' && (
             <div className="field-animate">
-              <FormulaTermsField terms={terms} onChange={setTerms} options={referenceOptions} />
+              <FormulaBuilder tokens={tokens} onChange={setTokens} referenceFields={referenceFields} color={color} />
             </div>
           )}
 

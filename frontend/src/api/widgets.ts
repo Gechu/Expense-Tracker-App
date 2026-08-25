@@ -11,14 +11,19 @@ export interface WidgetEntry {
   created_at: string
 }
 
-/** Kształt "config" dla type="formula" - lista składników sumy/różnicy */
-export interface FormulaTerm {
-  widget_id: number
-  sign: '+' | '-'
-}
+export const FORMULA_OPERATORS = ['+', '-', '*', '/', '(', ')'] as const
+export type FormulaOperator = (typeof FORMULA_OPERATORS)[number]
+
+/** Kształt "config" dla type="formula" - budowane klikaniem wyrażenie:
+   odwołania do pól, liczby i operatory (w tym nawiasy), liczone z zachowaniem
+   normalnego priorytetu działań (* / przed + -). */
+export type FormulaToken =
+  | { kind: 'field'; widget_id: number }
+  | { kind: 'number'; value: number }
+  | { kind: 'op'; value: FormulaOperator }
 
 export interface FormulaConfig {
-  terms: FormulaTerm[]
+  tokens: FormulaToken[]
 }
 
 /** Kształt "config" dla type="currency" - kurs wpisywany ręcznie */

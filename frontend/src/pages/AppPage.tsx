@@ -194,6 +194,7 @@ export default function AppPage() {
         <AddFieldModal
           tabId={activeTab.id}
           nextPosition={activeTab.widgets.length}
+          color={activeTab.color}
           tabs={tabs}
           onClose={() => setAddFieldOpen(false)}
           onCreated={() => {
@@ -206,6 +207,7 @@ export default function AppPage() {
       {widgetSettingsTarget && (
         <WidgetSettingsModal
           widget={widgetSettingsTarget}
+          color={tabs.find((t) => t.id === widgetSettingsTarget.tab_id)?.color ?? '#8c95a6'}
           tabs={tabs}
           onClose={() => setWidgetSettingsTarget(null)}
           onChanged={() => {
