@@ -4,7 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.routers import auth, tabs, widgets
+from app.routers import auth, fx, tabs, widgets
 
 app = FastAPI(title="Expense Tracker API")
 
@@ -19,6 +19,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(tabs.router)
 app.include_router(widgets.router)
+app.include_router(fx.router)
 
 
 @app.get("/health")

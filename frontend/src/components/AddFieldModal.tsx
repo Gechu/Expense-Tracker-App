@@ -2,7 +2,9 @@ import { ArrowLeftRight, Sigma, Table2, Type, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { createEntry, createWidget, type WidgetType } from '../api/widgets'
 import type { Tab } from '../api/tabs'
+import CurrencySelect from './CurrencySelect'
 import FormulaTermsField, { termsToConfig, type ReferenceOption } from './FormulaTermsField'
+import RateField from './RateField'
 
 const TYPE_OPTIONS: { type: WidgetType; label: string; hint: string; icon: typeof Type }[] = [
   { type: 'single_value', label: 'Pojedyncze pole', hint: 'opis, kwota, data', icon: Type },
@@ -159,44 +161,11 @@ export default function AddFieldModal({ tabId, nextPosition, tabs, onClose, onCr
                     required
                   />
                 </label>
-                <label className="field" style={{ flex: 1 }}>
-                  <span className="text-label">Kurs</span>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    className="input"
-                    value={rate}
-                    onChange={(e) => setRate(e.target.value)}
-                    placeholder="np. 4.20"
-                    required
-                  />
-                </label>
+                <RateField rate={rate} onChange={setRate} fromCurrency={fromCurrency} toCurrency={toCurrency} />
               </div>
               <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-                <label className="field" style={{ flex: 1 }}>
-                  <span className="text-label">Z waluty</span>
-                  <input
-                    type="text"
-                    className="input"
-                    value={fromCurrency}
-                    onChange={(e) => setFromCurrency(e.target.value.toUpperCase())}
-                    placeholder="EUR"
-                    maxLength={8}
-                    required
-                  />
-                </label>
-                <label className="field" style={{ flex: 1 }}>
-                  <span className="text-label">Na walutę</span>
-                  <input
-                    type="text"
-                    className="input"
-                    value={toCurrency}
-                    onChange={(e) => setToCurrency(e.target.value.toUpperCase())}
-                    placeholder="PLN"
-                    maxLength={8}
-                    required
-                  />
-                </label>
+                <CurrencySelect label="Z waluty" value={fromCurrency} onChange={setFromCurrency} />
+                <CurrencySelect label="Na walutę" value={toCurrency} onChange={setToCurrency} />
               </div>
             </div>
           )}
