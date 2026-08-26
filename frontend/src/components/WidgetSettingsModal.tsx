@@ -10,7 +10,7 @@ import {
 } from '../api/widgets'
 import type { Tab } from '../api/tabs'
 import CurrencySelect from './CurrencySelect'
-import FormulaBuilder, { type ReferenceField } from './FormulaBuilder'
+import FormulaBuilder, { isFormulaComplete, type ReferenceField } from './FormulaBuilder'
 import RateField from './RateField'
 
 interface WidgetSettingsModalProps {
@@ -42,6 +42,7 @@ export default function WidgetSettingsModal({ widget, color, tabs, onClose, onCh
       .filter((w) => w.id !== widget.id)
       .map((w) => ({ id: w.id, label: w.label, tabColor: tab.color, value: Number(w.value ?? 0) })),
   )
+  const canSubmit = widget.type !== 'formula' || isFormulaComplete(tokens)
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -86,7 +87,8 @@ export default function WidgetSettingsModal({ widget, color, tabs, onClose, onCh
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="modal-body">
           <label className="field" style={{ marginTop: 18 }}>
             <span className="text-label">Nazwa</span>
             <input
@@ -123,14 +125,23 @@ export default function WidgetSettingsModal({ widget, color, tabs, onClose, onCh
           )}
 
           {widget.type === 'formula' && (
-            <FormulaBuilder tokens={tokens} onChange={setTokens} referenceFields={referenceFields} color={color} />
+            <>
+              <FormulaBuilder tokens={tokens} onChange={setTokens} referenceFields={referenceFields} color={color} />
+              {!canSubmit && (
+                <span style={{ display: 'block', marginTop: 8, color: 'var(--text-faint)', fontSize: 11.5 }}>
+                  Formuła jest niedokończona - sprawdź, czy wszystkie nawiasy są domknięte i czy nie kończy się
+                  operatorem.
+                </span>
+              )}
+            </>
           )}
 
           {error && (
             <span style={{ display: 'block', marginTop: 14, color: '#e5484d', fontSize: 13 }}>{error}</span>
           )}
+          </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 9, marginTop: 24, flexWrap: 'wrap' }}>
+          <div className="modal-actions" style={{ display: 'flex', justifyContent: 'space-between', gap: 9, flexWrap: 'wrap' }}>
             <button type="button" className="btn-danger" onClick={handleDelete} disabled={busy}>
               Usuń pole
             </button>
@@ -138,7 +149,12 @@ export default function WidgetSettingsModal({ widget, color, tabs, onClose, onCh
               <button type="button" className="btn-ghost" onClick={onClose}>
                 Anuluj
               </button>
-              <button type="submit" className="btn-cta" style={{ width: 'auto', padding: '11px 17px' }} disabled={busy}>
+              <button
+                type="submit"
+                className="btn-cta"
+                style={{ width: 'auto', padding: '11px 17px' }}
+                disabled={busy || !canSubmit}
+              >
                 Zapisz
               </button>
             </div>

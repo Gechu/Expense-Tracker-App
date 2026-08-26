@@ -115,6 +115,17 @@ export default function AppPage() {
           </button>
           {activeTab && <span className="tab-dot" style={{ background: activeTab.color, width: 8, height: 8 }} />}
           <span className="mobile-topbar-title">{activeTab ? activeTab.name : 'Ledger'}</span>
+          {activeTab && (
+            <button
+              type="button"
+              className="menu-toggle"
+              style={{ marginLeft: 'auto' }}
+              onClick={() => setAddFieldOpen(true)}
+              aria-label="Dodaj pole"
+            >
+              <Plus size={18} />
+            </button>
+          )}
         </div>
 
         {activeTab ? (

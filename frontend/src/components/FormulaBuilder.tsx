@@ -21,6 +21,29 @@ export interface ReferenceField {
   value: number
 }
 
+/** Czy token na końcu wyrażenia jest "otwarty", czyli wyrażenie wymaga jeszcze
+   jakiejś wartości (pola/liczby/nawiasu), żeby mieć sens - np. zaraz po
+   operatorze +, -, ×, ÷ albo po "(". Puste wyrażenie też jest w tym stanie. */
+function expectsValue(tokens: FormulaToken[]): boolean {
+  const last = tokens[tokens.length - 1]
+  return !last || (last.kind === 'op' && last.value !== ')')
+}
+
+function openParenCount(tokens: FormulaToken[]): number {
+  return tokens.reduce((count, t) => {
+    if (t.kind === 'op' && t.value === '(') return count + 1
+    if (t.kind === 'op' && t.value === ')') return count - 1
+    return count
+  }, 0)
+}
+
+/** Formułę można zapisać tylko wtedy, gdy nie kończy się w połowie działania
+   (np. samym operatorem) i gdy wszystkie nawiasy są domknięte. Puste
+   wyrażenie (wynik 0) jest dozwolone. */
+export function isFormulaComplete(tokens: FormulaToken[]): boolean {
+  return tokens.length === 0 || (!expectsValue(tokens) && openParenCount(tokens) === 0)
+}
+
 interface FormulaBuilderProps {
   tokens: FormulaToken[]
   onChange: (tokens: FormulaToken[]) => void
@@ -56,6 +79,38 @@ export default function FormulaBuilder({ tokens, onChange, referenceFields, colo
     if (!Number.isFinite(value)) return
     pushValueToken({ kind: 'number', value })
     setNumberDraft('')
+  }
+
+  const needsValue = expectsValue(tokens)
+  const openParens = openParenCount(tokens)
+
+  /** Czy dany przycisk operatora ma teraz sens gramatyczny:
+     - × ÷ zawsze potrzebują czegoś z lewej strony (nie mają wersji jednoargumentowej)
+     - ) zamyka nawias tylko wtedy, gdy jest coś do zamknięcia i wyrażenie w środku się skończyło
+     - + jako jednoargumentowy plus niczego nie zmienia ("+5" = "5"), więc ma sens
+       tylko jako dodawanie - czyli gdy po lewej jest już jakaś wartość
+     - − jako jednoargumentowy minus (negacja) ma sens, ale nie pozwalamy go
+       stackować pod rząd ("− −") - po jednym znaku wymagamy już konkretnej wartości
+     - ( jest sensowne zawsze - w razie potrzeby dostawiamy przed nim "+" */
+  function canUseOperator(op: FormulaOperator): boolean {
+    if (op === ')') return !needsValue && openParens > 0
+    if (op === '*' || op === '/') return !needsValue
+    if (op === '+') return !needsValue
+    if (op === '-') {
+      if (!needsValue) return true
+      const last = tokens[tokens.length - 1]
+      return !(last && last.kind === 'op' && last.value === '-')
+    }
+    return true // '('
+  }
+
+  function pushOperator(op: FormulaOperator) {
+    if (op === '(' && !needsValue) {
+      // "(" zaraz po gotowej wartości - jak z polem/liczbą, dostawiamy "+" przed nim
+      onChange([...tokens, { kind: 'op', value: '+' }, { kind: 'op', value: '(' }])
+      return
+    }
+    pushToken({ kind: 'op', value: op })
   }
 
   const valueLookup = new Map(referenceFields.map((f) => [f.id, f.value]))
@@ -109,7 +164,13 @@ export default function FormulaBuilder({ tokens, onChange, referenceFields, colo
 
       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 12 }}>
         {OPERATORS.map((op) => (
-          <button key={op} type="button" className="op-btn" onClick={() => pushToken({ kind: 'op', value: op })}>
+          <button
+            key={op}
+            type="button"
+            className="op-btn"
+            onClick={() => pushOperator(op)}
+            disabled={!canUseOperator(op)}
+          >
             {OP_LABELS[op]}
           </button>
         ))}

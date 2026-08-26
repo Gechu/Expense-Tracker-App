@@ -65,7 +65,8 @@ export default function EntryModal({ widgetId, entry, showLabel, nextPosition, o
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="modal-body">
           {showLabel && (
             <label className="field" style={{ marginTop: 18 }}>
               <span className="text-label">Opis</span>
@@ -108,8 +109,9 @@ export default function EntryModal({ widgetId, entry, showLabel, nextPosition, o
           {error && (
             <span style={{ display: 'block', marginTop: 14, color: '#e5484d', fontSize: 13 }}>{error}</span>
           )}
+          </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 9, marginTop: 24, flexWrap: 'wrap' }}>
+          <div className="modal-actions" style={{ display: 'flex', justifyContent: 'space-between', gap: 9, flexWrap: 'wrap' }}>
             {entry && (
               <button type="button" className="btn-danger" onClick={handleDelete} disabled={busy}>
                 Usuń wpis

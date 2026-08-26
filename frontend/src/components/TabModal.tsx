@@ -59,45 +59,47 @@ export default function TabModal({ tab, nextPosition, onClose, onSaved, onDelete
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <label className="field" style={{ marginTop: 18 }}>
-            <span className="text-label">Nazwa</span>
-            <input
-              type="text"
-              className="input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="np. Samochód"
-              required
-              autoFocus
-            />
-          </label>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="modal-body">
+            <label className="field" style={{ marginTop: 18 }}>
+              <span className="text-label">Nazwa</span>
+              <input
+                type="text"
+                className="input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="np. Samochód"
+                required
+                autoFocus
+              />
+            </label>
 
-          <div style={{ marginTop: 16 }}>
-            <span className="text-label">Kolor</span>
-            <div className="swatch-row">
-              {PALETTE.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className="swatch"
-                  style={{
-                    background: color === c ? c : `${c}2e`,
-                    borderColor: color === c ? c : `${c}44`,
-                    boxShadow: color === c ? `0 0 0 3px ${c}2a` : 'none',
-                  }}
-                  onClick={() => setColor(c)}
-                  aria-label={`Wybierz kolor ${c}`}
-                />
-              ))}
+            <div style={{ marginTop: 16 }}>
+              <span className="text-label">Kolor</span>
+              <div className="swatch-row">
+                {PALETTE.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className="swatch"
+                    style={{
+                      background: color === c ? c : `${c}2e`,
+                      borderColor: color === c ? c : `${c}44`,
+                      boxShadow: color === c ? `0 0 0 3px ${c}2a` : 'none',
+                    }}
+                    onClick={() => setColor(c)}
+                    aria-label={`Wybierz kolor ${c}`}
+                  />
+                ))}
+              </div>
             </div>
+
+            {error && (
+              <span style={{ display: 'block', marginTop: 14, color: '#e5484d', fontSize: 13 }}>{error}</span>
+            )}
           </div>
 
-          {error && (
-            <span style={{ display: 'block', marginTop: 14, color: '#e5484d', fontSize: 13 }}>{error}</span>
-          )}
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 9, marginTop: 24, flexWrap: 'wrap' }}>
+          <div className="modal-actions" style={{ display: 'flex', justifyContent: 'space-between', gap: 9, flexWrap: 'wrap' }}>
             {tab && (
               <button type="button" className="btn-danger" onClick={handleDelete} disabled={busy}>
                 Usuń zakładkę

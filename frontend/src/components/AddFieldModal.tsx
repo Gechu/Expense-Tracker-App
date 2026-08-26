@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { createEntry, createWidget, type FormulaToken, type WidgetType } from '../api/widgets'
 import type { Tab } from '../api/tabs'
 import CurrencySelect from './CurrencySelect'
-import FormulaBuilder, { type ReferenceField } from './FormulaBuilder'
+import FormulaBuilder, { isFormulaComplete, type ReferenceField } from './FormulaBuilder'
 import RateField from './RateField'
 
 const TYPE_OPTIONS: { type: WidgetType; label: string; hint: string; icon: typeof Type }[] = [
@@ -39,6 +39,7 @@ export default function AddFieldModal({ tabId, nextPosition, color, tabs, onClos
   const referenceFields: ReferenceField[] = tabs.flatMap((tab) =>
     tab.widgets.map((w) => ({ id: w.id, label: w.label, tabColor: tab.color, value: Number(w.value ?? 0) })),
   )
+  const canSubmit = type !== 'formula' || isFormulaComplete(tokens)
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -77,10 +78,11 @@ export default function AddFieldModal({ tabId, nextPosition, color, tabs, onClos
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="modal-body">
           <div style={{ marginTop: 18 }}>
             <span className="text-label">Typ</span>
-            <div style={{ display: 'flex', gap: 9, marginTop: 9, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 7, marginTop: 9, flexWrap: 'wrap' }}>
               {TYPE_OPTIONS.map((option) => {
                 const Icon = option.icon
                 const active = option.type === type
@@ -90,20 +92,22 @@ export default function AddFieldModal({ tabId, nextPosition, color, tabs, onClos
                     type="button"
                     className="panel"
                     onClick={() => setType(option.type)}
+                    title={option.hint}
                     style={{
-                      flex: '1 1 calc(50% - 5px)',
+                      flex: '1 1 calc(25% - 6px)',
+                      minWidth: 90,
                       display: 'flex',
-                      flexDirection: 'column',
+                      flexDirection: 'row',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       gap: 6,
-                      padding: '14px 10px',
+                      padding: '10px 6px',
                       cursor: 'pointer',
                       borderColor: active ? 'var(--text)' : undefined,
                     }}
                   >
-                    <Icon size={18} />
-                    <span style={{ fontSize: 12.5, fontWeight: 500 }}>{option.label}</span>
-                    <span className="text-meta">{option.hint}</span>
+                    <Icon size={15} />
+                    <span style={{ fontSize: 12, fontWeight: 500 }}>{option.label}</span>
                   </button>
                 )
               })}
@@ -175,18 +179,30 @@ export default function AddFieldModal({ tabId, nextPosition, color, tabs, onClos
           {type === 'formula' && (
             <div className="field-animate">
               <FormulaBuilder tokens={tokens} onChange={setTokens} referenceFields={referenceFields} color={color} />
+              {!canSubmit && (
+                <span style={{ display: 'block', marginTop: 8, color: 'var(--text-faint)', fontSize: 11.5 }}>
+                  Formuła jest niedokończona - sprawdź, czy wszystkie nawiasy są domknięte i czy nie kończy się
+                  operatorem.
+                </span>
+              )}
             </div>
           )}
 
           {error && (
             <span style={{ display: 'block', marginTop: 14, color: '#e5484d', fontSize: 13 }}>{error}</span>
           )}
+          </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 9, marginTop: 24 }}>
+          <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 9 }}>
             <button type="button" className="btn-ghost" onClick={onClose}>
               Anuluj
             </button>
-            <button type="submit" className="btn-cta" style={{ width: 'auto', padding: '11px 17px' }} disabled={busy}>
+            <button
+              type="submit"
+              className="btn-cta"
+              style={{ width: 'auto', padding: '11px 17px' }}
+              disabled={busy || !canSubmit}
+            >
               Utwórz
             </button>
           </div>
