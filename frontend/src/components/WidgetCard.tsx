@@ -1,5 +1,5 @@
-import { Plus, Settings, X } from 'lucide-react'
-import type { MouseEvent } from 'react'
+import { GripVertical, Plus, Settings, X } from 'lucide-react'
+import { useState, type DragEvent, type MouseEvent } from 'react'
 import { formatAmount, formatDate } from '../lib/format'
 import { deleteEntry, type CurrencyConfig, type FormulaConfig, type Widget, type WidgetEntry } from '../api/widgets'
 import { OP_LABELS } from './FormulaBuilder'
@@ -20,6 +20,12 @@ interface WidgetCardProps {
   onAddEntry: () => void
   onEditEntry: (entry: WidgetEntry) => void
   onChanged: () => void
+  onDragStart: (event: DragEvent<HTMLDivElement>) => void
+  onDragOver: (event: DragEvent<HTMLDivElement>) => void
+  onDrop: (event: DragEvent<HTMLDivElement>) => void
+  onDragEnd: () => void
+  isDragging: boolean
+  isDragOver: boolean
 }
 
 export default function WidgetCard({
@@ -30,7 +36,19 @@ export default function WidgetCard({
   onAddEntry,
   onEditEntry,
   onChanged,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  isDragging,
+  isDragOver,
 }: WidgetCardProps) {
+  // Karta jest "draggable" tylko w chwili, gdy przycisk myszy jest wciśnięty
+  // na uchwycie (ikonka kropek) - inaczej każde zwykłe kliknięcie gdziekolwiek
+  // na karcie (np. na pigułce formuły) potrafi przypadkiem wywołać natywny
+  // drag przeglądarki i zostawić "widmo" karty w miejscu, gdzie mysz spoczęła.
+  const [canDrag, setCanDrag] = useState(false)
+
   const badgeStyle = {
     color,
     borderColor: `${color}33`,
@@ -49,8 +67,30 @@ export default function WidgetCard({
   const formulaConfig = widget.type === 'formula' ? (widget.config as FormulaConfig | null) : null
 
   return (
-    <div className="panel field-card">
+    <div
+      className="panel field-card"
+      draggable={canDrag}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={() => {
+        setCanDrag(false)
+        onDragEnd()
+      }}
+      onMouseUp={() => setCanDrag(false)}
+      style={{
+        opacity: isDragging ? 0.4 : 1,
+        outline: isDragOver ? `2px dashed ${color}` : 'none',
+        outlineOffset: -2,
+      }}
+    >
       <div className="field-card-header">
+        <GripVertical
+          size={14}
+          className="field-drag-handle"
+          onMouseDown={() => setCanDrag(true)}
+          onMouseUp={() => setCanDrag(false)}
+        />
         <span className="tab-dot" style={{ background: color, width: 8, height: 8 }} />
         <span className="field-title">{widget.label}</span>
         <span className="field-badge" style={badgeStyle}>

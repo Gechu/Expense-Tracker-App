@@ -100,6 +100,10 @@
   /* Przyciemnienie za modalem + tło samego modala */
   --scrim: rgba(4, 6, 10, 0.62);
   --modal-bg: linear-gradient(155deg, rgba(30, 38, 48, 0.96), rgba(14, 18, 26, 0.94));
+
+  /* Karty pól - w pełni kryjące, jednolite tło (bez gradientu/rozmycia jak
+     zwykły "szklany" panel) - patrz komentarz przy .field-card niżej. */
+  --card-solid-bg: #14171f;
 }
 
 /* Jasny wariant tych samych tokenów - włączany atrybutem data-theme="light"
@@ -142,6 +146,8 @@
   --rail-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.5));
   --scrim: rgba(160, 175, 185, 0.5);
   --modal-bg: linear-gradient(155deg, rgba(255, 255, 255, 0.97), rgba(244, 247, 248, 0.95));
+
+  --card-solid-bg: #fbfbfc;
 }
 
 /* 3. Reset / tło aplikacji */
@@ -887,13 +893,23 @@ input:focus {
 }
 
 /* 14. Karty pól (widgety) - siatka kart w treści zakładki */
-/* Układ typu "murek" (CSS columns) zamiast grida - zwykły grid zostawia
-   puste miejsca pod krótszymi kartami, bo nie potrafi ich "upakować" w
-   luki po sąsiednich, wyższych kartach. Kolumny renderują karty jedna
-   pod drugą i same przechodzą do kolejnej kolumny, więc luk nie ma. */
+/* Układ typu "murek" - kolumny wyliczane ręcznie w FieldsMasonry.tsx
+   (każda karta dokładana do aktualnie najkrótszej kolumny), zamiast CSS
+   `column-width`. Ten drugi ma w Chromium błąd: potrafi przy zmianie
+   zawartości przemalować za duży obszar, sięgający w głąb sąsiedniej
+   kolumny, zostawiając widoczny artefakt starej klatki na ekranie. */
 .fields-grid {
-  column-width: 286px;
-  column-gap: 15px;
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.fields-column {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .field-card {
@@ -901,8 +917,26 @@ input:focus {
   overflow: hidden;
   padding: 19px 20px;
   border-top: 1px solid var(--card-top-border);
-  break-inside: avoid;
-  margin-bottom: 15px;
+  transition: opacity 0.15s ease;
+  user-select: none;
+  /* .panel domyślnie ma półprzezroczysty gradient + backdrop-filter (efekt
+     "szkła") - dla kart pól nadpisujemy to na w pełni kryjący, jednolity
+     kolor bez rozmycia. Backdrop-filter nad złożonym, gradientowym tłem
+     strony to jeden z najbardziej znanych źródeł błędów przemalowywania
+     w Chromium (widma starej klatki, aż do wymuszonego przerysowania). */
+  background: var(--card-solid-bg);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.field-drag-handle {
+  flex: none;
+  color: var(--text-faint);
+  cursor: grab;
+}
+
+.field-drag-handle:active {
+  cursor: grabbing;
 }
 
 .field-card-header {
