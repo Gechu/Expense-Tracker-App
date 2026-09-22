@@ -4,7 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.routers import auth, fx, tabs, widgets
+from app.routers import auth, fx, pins, tabs, widgets
 
 app = FastAPI(title="Expense Tracker API")
 
@@ -20,6 +20,7 @@ app.include_router(auth.router)
 app.include_router(tabs.router)
 app.include_router(widgets.router)
 app.include_router(fx.router)
+app.include_router(pins.router)
 
 
 @app.get("/health")

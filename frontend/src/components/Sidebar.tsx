@@ -6,6 +6,10 @@ import type { DragReorderControls } from '../hooks/useDragReorder'
 import ThemeToggle from './ThemeToggle'
 
 interface SidebarProps {
+  /** Strona główna - osobny, stały wiersz nad listą zakładek (patrz niżej),
+   * nigdy nieprzesuwalny. Może być null tylko na ułamek sekundy przed
+   * pierwszym pobraniem danych. */
+  homeTab: Tab | null
   tabs: Tab[]
   activeTabId: number | null
   onSelect: (id: number) => void
@@ -31,12 +35,15 @@ interface TabRowProps {
   onEditTab: () => void
   dragControls: DragReorderControls
   onDragPointerMove: (event: ReactPointerEvent<Element>) => void
+  /** Strona główna jest zawsze pierwsza i nieprzesuwalna - bez uchwytu
+   * przeciągania nawet w trybie edycji (patrz Sidebar). */
+  draggable?: boolean
 }
 
 /** Wiersz zakładki - uchwyt do przeciągania (Pointer Events, działa myszą
  * i dotykiem - patrz useDragReorder) jest widoczny tylko w trybie edycji,
  * tak samo jak zębatka (pełne ustawienia w modalu). */
-function TabRow({ tab, isActive, editMode, onSelect, onEditTab, dragControls, onDragPointerMove }: TabRowProps) {
+function TabRow({ tab, isActive, editMode, onSelect, onEditTab, dragControls, onDragPointerMove, draggable = true }: TabRowProps) {
   const isDragging = dragControls.draggedId === tab.id
   const isDragOver = dragControls.overId === tab.id
 
@@ -50,7 +57,7 @@ function TabRow({ tab, isActive, editMode, onSelect, onEditTab, dragControls, on
         outlineOffset: -2,
       }}
     >
-      {editMode && (
+      {editMode && draggable && (
         <GripVertical
           size={13}
           className="tab-drag-handle"
@@ -73,6 +80,7 @@ function TabRow({ tab, isActive, editMode, onSelect, onEditTab, dragControls, on
 }
 
 export default function Sidebar({
+  homeTab,
   tabs,
   activeTabId,
   onSelect,
@@ -126,12 +134,27 @@ export default function Sidebar({
         <ThemeToggle variant="inline" />
       </div>
 
+      {homeTab && (
+        <div style={{ marginTop: 20 }}>
+          <TabRow
+            tab={homeTab}
+            isActive={homeTab.id === activeTabId}
+            editMode={editMode}
+            onSelect={() => handleSelect(homeTab.id)}
+            onEditTab={() => onEditTab(homeTab)}
+            dragControls={dragControls}
+            onDragPointerMove={handleTabDragPointerMove}
+            draggable={false}
+          />
+        </div>
+      )}
+
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginTop: 24,
+          marginTop: 20,
           padding: '0 8px 6px',
         }}
       >

@@ -100,7 +100,7 @@ export default function TabModal({ tab, nextPosition, onClose, onSaved, onDelete
           </div>
 
           <div className="modal-actions" style={{ display: 'flex', justifyContent: 'space-between', gap: 9, flexWrap: 'wrap' }}>
-            {tab && (
+            {tab && !tab.is_home && (
               <button type="button" className="btn-danger" onClick={handleDelete} disabled={busy}>
                 Usuń zakładkę
               </button>

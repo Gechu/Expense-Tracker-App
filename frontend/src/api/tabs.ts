@@ -6,6 +6,8 @@ export interface Tab {
   name: string
   color: string
   position: number
+  /** Strona główna - dokładnie jedna, tworzona przez backend, nigdy przez klienta */
+  is_home: boolean
   created_at: string
   widgets: Widget[]
 }

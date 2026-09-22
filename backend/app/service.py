@@ -139,6 +139,18 @@ def widget_to_out(widget: models.Widget, db: Session) -> schemas.WidgetOut:
     )
 
 
+def pin_to_out(pin: models.Pin, widget: models.Widget, db: Session) -> schemas.PinOut:
+    tab = widget.tab
+    return schemas.PinOut(
+        id=pin.id,
+        position=pin.position,
+        tab_id=tab.id,
+        tab_name=tab.name,
+        tab_color=tab.color,
+        widget=widget_to_out(widget, db),
+    )
+
+
 def tab_to_out(tab: models.Tab, db: Session) -> schemas.TabOut:
     widgets = sorted(tab.widgets, key=lambda widget: widget.position)
     return schemas.TabOut(
@@ -146,6 +158,7 @@ def tab_to_out(tab: models.Tab, db: Session) -> schemas.TabOut:
         name=tab.name,
         color=tab.color,
         position=tab.position,
+        is_home=tab.is_home,
         created_at=tab.created_at,
         widgets=[widget_to_out(widget, db) for widget in widgets],
     )

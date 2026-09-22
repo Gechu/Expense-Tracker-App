@@ -5,7 +5,7 @@ import { deleteEntry, type CurrencyConfig, type FormulaConfig, type Widget, type
 import type { DragReorderControls } from '../hooks/useDragReorder'
 import { OP_LABELS } from './FormulaBuilder'
 
-const BADGES: Record<Widget['type'], string> = {
+export const BADGES: Record<Widget['type'], string> = {
   single_value: 'Pole',
   table: 'Tabela',
   formula: 'Formuła',

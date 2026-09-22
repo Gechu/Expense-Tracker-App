@@ -1,12 +1,11 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import type { Widget } from '../api/widgets'
 
 const CARD_WIDTH = 286
 const GAP = 15
 
-interface FieldsMasonryProps {
-  widgets: Widget[]
-  renderCard: (widget: Widget) => ReactNode
+interface FieldsMasonryProps<T extends { id: number }> {
+  widgets: T[]
+  renderCard: (item: T) => ReactNode
 }
 
 /**
@@ -17,10 +16,10 @@ interface FieldsMasonryProps {
  * interakcji. Tutaj każda kolumna to osobny, zwykły blok - karta
  * dokładana jest zawsze do aktualnie najkrótszej kolumny.
  */
-export default function FieldsMasonry({ widgets, renderCard }: FieldsMasonryProps) {
+export default function FieldsMasonry<T extends { id: number }>({ widgets, renderCard }: FieldsMasonryProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null)
   const cardRefs = useRef(new Map<number, HTMLDivElement>())
-  const [columns, setColumns] = useState<Widget[][]>(() => [widgets])
+  const [columns, setColumns] = useState<T[][]>(() => [widgets])
 
   useLayoutEffect(() => {
     const container = containerRef.current
@@ -30,7 +29,7 @@ export default function FieldsMasonry({ widgets, renderCard }: FieldsMasonryProp
       const width = container!.clientWidth
       const columnCount = Math.max(1, Math.floor((width + GAP) / (CARD_WIDTH + GAP)))
       const heights = new Array(columnCount).fill(0)
-      const next: Widget[][] = Array.from({ length: columnCount }, () => [])
+      const next: T[][] = Array.from({ length: columnCount }, () => [])
 
       for (const widget of widgets) {
         const height = cardRefs.current.get(widget.id)?.offsetHeight ?? 0

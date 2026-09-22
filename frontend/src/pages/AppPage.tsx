@@ -2,12 +2,15 @@ import { Menu, Pencil, Plus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { logout, me, type User } from '../api/auth'
+import { listPins, unpin, updatePinPosition, type Pin } from '../api/pins'
 import { listTabs, updateTab, type Tab } from '../api/tabs'
 import { deleteWidget, updateWidget, type Widget, type WidgetEntry } from '../api/widgets'
 import AddFieldModal from '../components/AddFieldModal'
 import DragGhost from '../components/DragGhost'
 import EntryModal from '../components/EntryModal'
 import FieldsMasonry from '../components/FieldsMasonry'
+import PinnedWidgetCard from '../components/PinnedWidgetCard'
+import PinPickerModal from '../components/PinPickerModal'
 import Sidebar from '../components/Sidebar'
 import TabModal from '../components/TabModal'
 import WidgetCard from '../components/WidgetCard'
@@ -22,11 +25,13 @@ interface EntryModalState {
 export default function AppPage() {
   const [user, setUser] = useState<User | null>(null)
   const [tabs, setTabs] = useState<Tab[]>([])
+  const [pins, setPins] = useState<Pin[]>([])
   const [activeTabId, setActiveTabId] = useState<number | null>(null)
   const [tabModalOpen, setTabModalOpen] = useState(false)
   const [tabModalTarget, setTabModalTarget] = useState<Tab | null>(null)
   const [navOpen, setNavOpen] = useState(false)
   const [addFieldOpen, setAddFieldOpen] = useState(false)
+  const [pinPickerOpen, setPinPickerOpen] = useState(false)
   const [widgetSettingsTarget, setWidgetSettingsTarget] = useState<Widget | null>(null)
   const [entryModal, setEntryModal] = useState<EntryModalState | null>(null)
   const [editMode, setEditMode] = useState(false)
@@ -34,11 +39,14 @@ export default function AppPage() {
 
   useEffect(() => {
     let active = true
-    Promise.all([me(), listTabs()])
-      .then(([currentUser, currentTabs]) => {
+    // tabs[0] to zawsze strona główna (backend sortuje is_home first) - staje
+    // się domyślną aktywną zakładką, więc pokazuje się od razu po wejściu.
+    Promise.all([me(), listTabs(), listPins()])
+      .then(([currentUser, currentTabs, currentPins]) => {
         if (!active) return
         setUser(currentUser)
         setTabs(currentTabs)
+        setPins(currentPins)
         if (currentTabs.length > 0) setActiveTabId(currentTabs[0].id)
       })
       .catch(() => {
@@ -61,9 +69,14 @@ export default function AppPage() {
     }
   }, [navOpen])
 
+  // "Coś się zmieniło" - odświeża i zakładki, i piny naraz. Piny na stronie
+  // głównej to żywe odwołania do widgetów z innych zakładek, więc każda
+  // zmiana widgetu (albo usunięcie, przez kaskadę FK - patrz backend) musi
+  // się w nich odbić, nie tylko w samych zakładkach.
   async function refreshTabs() {
-    const fresh = await listTabs()
-    setTabs(fresh)
+    const [freshTabs, freshPins] = await Promise.all([listTabs(), listPins()])
+    setTabs(freshTabs)
+    setPins(freshPins)
   }
 
   async function handleRenameWidget(widgetId: number, label: string) {
@@ -109,6 +122,11 @@ export default function AppPage() {
     setTabModalOpen(false)
   }
 
+  const homeTab = tabs.find((t) => t.is_home) ?? null
+  // Strona główna jest zawsze pierwsza i nieprzesuwalna - nie bierze udziału
+  // w przeciąganiu/zmianie kolejności zwykłych zakładek.
+  const regularTabs = tabs.filter((t) => !t.is_home)
+
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? null
   // useMemo (nie zwykłe [...].sort() przy każdym renderze) - inaczej FieldsMasonry
   // dostaje "nową" tablicę i przelicza cały układ murku od zera przy każdej
@@ -127,10 +145,17 @@ export default function AppPage() {
     await refreshTabs()
   })
 
-  const tabDrag = useDragReorder(tabs, async (reordered) => {
+  const tabDrag = useDragReorder(regularTabs, async (reordered) => {
     const withPositions = reordered.map((t, index) => ({ ...t, position: index }))
-    setTabs(withPositions)
+    setTabs((current) => [...current.filter((t) => t.is_home), ...withPositions])
     await Promise.all(withPositions.map((t, index) => updateTab(t.id, { position: index })))
+    await refreshTabs()
+  })
+
+  const pinDrag = useDragReorder(pins, async (reordered) => {
+    const withPositions = reordered.map((p, index) => ({ ...p, position: index }))
+    setPins(withPositions)
+    await Promise.all(withPositions.map((p, index) => updatePinPosition(p.id, index)))
     await refreshTabs()
   })
 
@@ -150,9 +175,11 @@ export default function AppPage() {
       {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
       <DragGhost ghost={tabDrag.ghost} />
       <DragGhost ghost={widgetDrag.ghost} />
+      <DragGhost ghost={pinDrag.ghost} />
 
       <Sidebar
-        tabs={tabs}
+        homeTab={homeTab}
+        tabs={regularTabs}
         activeTabId={activeTabId}
         onSelect={setActiveTabId}
         onAddTab={openCreateTabModal}
@@ -186,8 +213,8 @@ export default function AppPage() {
               <button
                 type="button"
                 className="menu-toggle"
-                onClick={() => setAddFieldOpen(true)}
-                aria-label="Dodaj pole"
+                onClick={() => (activeTab.is_home ? setPinPickerOpen(true) : setAddFieldOpen(true))}
+                aria-label={activeTab.is_home ? 'Przypnij pole' : 'Dodaj pole'}
               >
                 <Plus size={18} />
               </button>
@@ -204,16 +231,50 @@ export default function AppPage() {
                   {activeTab.name}
                 </h1>
               </div>
-              <button type="button" className="btn-cta" style={{ width: 'auto' }} onClick={() => setAddFieldOpen(true)}>
+              <button
+                type="button"
+                className="btn-cta"
+                style={{ width: 'auto' }}
+                onClick={() => (activeTab.is_home ? setPinPickerOpen(true) : setAddFieldOpen(true))}
+              >
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Plus size={14} />
-                  Dodaj pole
+                  {activeTab.is_home ? 'Przypnij pole' : 'Dodaj pole'}
                 </span>
               </button>
             </header>
 
             <div className="main-content">
-              {activeTab.widgets.length === 0 ? (
+              {activeTab.is_home ? (
+                pins.length === 0 ? (
+                  <div className="panel panel--lg fields-empty">
+                    <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>Brak przypiętych pól</h2>
+                    <p className="text-dim" style={{ margin: 0 }}>
+                      Przypnij pierwsze, żeby mieć je zawsze pod ręką od razu po wejściu do apki.
+                    </p>
+                    <button type="button" className="btn-cta" style={{ width: 'auto', marginTop: 8 }} onClick={() => setPinPickerOpen(true)}>
+                      + Przypnij pole
+                    </button>
+                  </div>
+                ) : (
+                  <FieldsMasonry
+                    key={activeTab.id}
+                    widgets={pins}
+                    renderCard={(pin) => (
+                      <PinnedWidgetCard
+                        pin={pin}
+                        onOpenSource={() => setActiveTabId(pin.tab_id)}
+                        onUnpin={async () => {
+                          await unpin(pin.id)
+                          await refreshTabs()
+                        }}
+                        dragControls={pinDrag}
+                        editMode={editMode}
+                      />
+                    )}
+                  />
+                )
+              ) : activeTab.widgets.length === 0 ? (
                 <div className="panel panel--lg fields-empty">
                   <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>Brak pól w tej zakładce</h2>
                   <p className="text-dim" style={{ margin: 0 }}>
@@ -225,6 +286,7 @@ export default function AppPage() {
                 </div>
               ) : (
                 <FieldsMasonry
+                  key={activeTab.id}
                   widgets={activeWidgets}
                   renderCard={(widget) => (
                     <WidgetCard
@@ -280,6 +342,19 @@ export default function AppPage() {
           onClose={() => setAddFieldOpen(false)}
           onCreated={() => {
             setAddFieldOpen(false)
+            refreshTabs()
+          }}
+        />
+      )}
+
+      {pinPickerOpen && (
+        <PinPickerModal
+          tabs={tabs}
+          pinnedWidgetIds={new Set(pins.map((p) => p.widget.id))}
+          nextPosition={pins.length}
+          onClose={() => setPinPickerOpen(false)}
+          onPinned={() => {
+            setPinPickerOpen(false)
             refreshTabs()
           }}
         />

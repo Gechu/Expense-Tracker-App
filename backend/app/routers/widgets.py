@@ -42,7 +42,12 @@ def create_widget(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    get_owned_tab(tab_id, db, user)
+    tab = get_owned_tab(tab_id, db, user)
+    if tab.is_home:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Na stronie głównej nie można tworzyć nowych pól - przypnij istniejące",
+        )
     widget = models.Widget(
         tab_id=tab_id,
         type=payload.type,

@@ -92,5 +92,26 @@ class TabOut(BaseModel):
     name: str
     color: str
     position: int
+    is_home: bool
     created_at: datetime
     widgets: list[WidgetOut] = []
+
+
+class PinCreate(BaseModel):
+    widget_id: int
+    position: int = 0
+
+
+class PinUpdate(BaseModel):
+    position: int
+
+
+class PinOut(BaseModel):
+    id: int
+    position: int
+    # dane zakładki ŹRÓDŁOWEJ widgetu - do pokolorowania karty wg pochodzenia,
+    # ten sam pomysł co pigułki formuły (patrz FormulaBuilder/WidgetCard)
+    tab_id: int
+    tab_name: str
+    tab_color: str
+    widget: WidgetOut

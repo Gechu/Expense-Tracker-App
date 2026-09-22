@@ -1,6 +1,7 @@
 from datetime import date, datetime, timezone
 
 from sqlalchemy import (
+    Boolean,
     Column,
     Date,
     DateTime,
@@ -39,6 +40,10 @@ class Tab(Base):
     name = Column(String, nullable=False)
     color = Column(String, nullable=False)
     position = Column(Integer, nullable=False, default=0)
+    # Zakładka "Strona główna" - dokładnie jedna na użytkownika, tworzona po
+    # stronie serwera (nigdy przez TabCreate/TabUpdate) - patrz routers/auth.py
+    # (rejestracja) i migracja backfillująca istniejące konta.
+    is_home = Column(Boolean, nullable=False, default=False, server_default="false")
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
     owner = relationship("User", back_populates="tabs")
@@ -76,3 +81,20 @@ class WidgetEntry(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
     widget = relationship("Widget", back_populates="entries")
+
+
+class Pin(Base):
+    """Żywe odwołanie do widgetu na stronie głównej ("przypięcie") - nie
+    kopia danych, tylko wskazanie + własna pozycja w układzie strony głównej.
+    Oba FK z ondelete=CASCADE - usunięcie widgetu (bezpośrednio albo przez
+    usunięcie jego zakładki) samo usuwa pin, bez osieroconych wierszy."""
+
+    __tablename__ = "pins"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    widget_id = Column(Integer, ForeignKey("widgets.id", ondelete="CASCADE"), nullable=False, index=True)
+    position = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+
+    widget = relationship("Widget")

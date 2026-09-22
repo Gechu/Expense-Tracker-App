@@ -17,7 +17,14 @@ def get_owned_tab(tab_id: int, db: Session, user: models.User) -> models.Tab:
 
 @router.get("", response_model=list[schemas.TabOut])
 def list_tabs(db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
-    tabs = db.query(models.Tab).filter(models.Tab.user_id == user.id).order_by(models.Tab.position).all()
+    # Strona główna zawsze pierwsza, niezależnie od position - dzięki temu
+    # frontend dostaje ją jako tabs[0] bez dodatkowej logiki sortującej.
+    tabs = (
+        db.query(models.Tab)
+        .filter(models.Tab.user_id == user.id)
+        .order_by(models.Tab.is_home.desc(), models.Tab.position)
+        .all()
+    )
     return [service.tab_to_out(tab, db) for tab in tabs]
 
 
@@ -56,5 +63,7 @@ def delete_tab(
     user: models.User = Depends(get_current_user),
 ):
     tab = get_owned_tab(tab_id, db, user)
+    if tab.is_home:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nie można usunąć strony głównej")
     db.delete(tab)
     db.commit()

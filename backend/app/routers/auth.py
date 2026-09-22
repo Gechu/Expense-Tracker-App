@@ -22,6 +22,11 @@ def register(payload: schemas.UserCreate, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    home_tab = models.Tab(user_id=user.id, name="Strona główna", color="#3fbf94", position=0, is_home=True)
+    db.add(home_tab)
+    db.commit()
+
     return user
 
 
