@@ -1,16 +1,18 @@
-import { Menu, Plus } from 'lucide-react'
-import { useEffect, useState, type DragEvent } from 'react'
+import { Menu, Pencil, Plus } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { logout, me, type User } from '../api/auth'
-import { listTabs, type Tab } from '../api/tabs'
-import { updateWidget, type Widget, type WidgetEntry } from '../api/widgets'
+import { listTabs, updateTab, type Tab } from '../api/tabs'
+import { deleteWidget, updateWidget, type Widget, type WidgetEntry } from '../api/widgets'
 import AddFieldModal from '../components/AddFieldModal'
+import DragGhost from '../components/DragGhost'
 import EntryModal from '../components/EntryModal'
 import FieldsMasonry from '../components/FieldsMasonry'
 import Sidebar from '../components/Sidebar'
 import TabModal from '../components/TabModal'
 import WidgetCard from '../components/WidgetCard'
 import WidgetSettingsModal from '../components/WidgetSettingsModal'
+import { useDragReorder } from '../hooks/useDragReorder'
 
 interface EntryModalState {
   widget: Widget
@@ -27,8 +29,7 @@ export default function AppPage() {
   const [addFieldOpen, setAddFieldOpen] = useState(false)
   const [widgetSettingsTarget, setWidgetSettingsTarget] = useState<Widget | null>(null)
   const [entryModal, setEntryModal] = useState<EntryModalState | null>(null)
-  const [draggedWidgetId, setDraggedWidgetId] = useState<number | null>(null)
-  const [dragOverWidgetId, setDragOverWidgetId] = useState<number | null>(null)
+  const [editMode, setEditMode] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -51,6 +52,16 @@ export default function AppPage() {
   async function refreshTabs() {
     const fresh = await listTabs()
     setTabs(fresh)
+  }
+
+  async function handleRenameWidget(widgetId: number, label: string) {
+    await updateWidget(widgetId, { label })
+    await refreshTabs()
+  }
+
+  async function handleDeleteWidget(widgetId: number) {
+    await deleteWidget(widgetId)
+    await refreshTabs()
   }
 
   async function handleLogout() {
@@ -86,61 +97,44 @@ export default function AppPage() {
     setTabModalOpen(false)
   }
 
+  const activeTab = tabs.find((t) => t.id === activeTabId) ?? null
+  // useMemo (nie zwykłe [...].sort() przy każdym renderze) - inaczej FieldsMasonry
+  // dostaje "nową" tablicę i przelicza cały układ murku od zera przy każdej
+  // aktualizacji stanu przeciągania (a to potrafi lecieć kilkadziesiąt razy
+  // na sekundę), co na słabszym CPU telefonu dawało odczuwalne lagi.
+  const activeWidgets = useMemo(
+    () => (activeTab ? [...activeTab.widgets].sort((a, b) => a.position - b.position) : []),
+    [activeTab],
+  )
+
+  const widgetDrag = useDragReorder(activeWidgets, async (reordered) => {
+    if (!activeTab) return
+    const withPositions = reordered.map((w, index) => ({ ...w, position: index }))
+    setTabs((current) => current.map((t) => (t.id === activeTab.id ? { ...t, widgets: withPositions } : t)))
+    await Promise.all(withPositions.map((w, index) => updateWidget(w.id, { position: index })))
+    await refreshTabs()
+  })
+
+  const tabDrag = useDragReorder(tabs, async (reordered) => {
+    const withPositions = reordered.map((t, index) => ({ ...t, position: index }))
+    setTabs(withPositions)
+    await Promise.all(withPositions.map((t, index) => updateTab(t.id, { position: index })))
+    await refreshTabs()
+  })
+
   if (!user) {
     return null
   }
 
-  const activeTab = tabs.find((t) => t.id === activeTabId) ?? null
   const widgetLabels = Object.fromEntries(
     tabs.flatMap((t) => t.widgets.map((w) => [w.id, w.label] as const)),
   )
 
-  function handleWidgetDragStart(event: DragEvent<HTMLDivElement>, widgetId: number) {
-    const target = event.target as HTMLElement
-    if (target.closest('button, input, textarea, a, [role="button"]')) {
-      event.preventDefault()
-      return
-    }
-    setDraggedWidgetId(widgetId)
-    event.dataTransfer.effectAllowed = 'move'
-  }
-
-  function handleWidgetDragOver(event: DragEvent<HTMLDivElement>, widgetId: number) {
-    if (draggedWidgetId == null || draggedWidgetId === widgetId) return
-    event.preventDefault()
-    setDragOverWidgetId(widgetId)
-  }
-
-  function handleWidgetDragEnd() {
-    setDraggedWidgetId(null)
-    setDragOverWidgetId(null)
-  }
-
-  async function handleWidgetDrop(event: DragEvent<HTMLDivElement>, targetWidgetId: number) {
-    event.preventDefault()
-    const sourceId = draggedWidgetId
-    setDraggedWidgetId(null)
-    setDragOverWidgetId(null)
-    if (!activeTab || sourceId == null || sourceId === targetWidgetId) return
-
-    const ordered = [...activeTab.widgets].sort((a, b) => a.position - b.position)
-    const fromIndex = ordered.findIndex((w) => w.id === sourceId)
-    const toIndex = ordered.findIndex((w) => w.id === targetWidgetId)
-    if (fromIndex === -1 || toIndex === -1) return
-
-    const [moved] = ordered.splice(fromIndex, 1)
-    ordered.splice(toIndex, 0, moved)
-    const reordered = ordered.map((w, index) => ({ ...w, position: index }))
-
-    setTabs((current) => current.map((t) => (t.id === activeTab.id ? { ...t, widgets: reordered } : t)))
-
-    await Promise.all(reordered.map((w, index) => updateWidget(w.id, { position: index })))
-    await refreshTabs()
-  }
-
   return (
     <div className="shell">
-      {navOpen && <div className="scrim" onClick={() => setNavOpen(false)} />}
+      {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
+      <DragGhost ghost={tabDrag.ghost} />
+      <DragGhost ghost={widgetDrag.ghost} />
 
       <Sidebar
         tabs={tabs}
@@ -152,6 +146,9 @@ export default function AppPage() {
         onLogout={handleLogout}
         isOpen={navOpen}
         onClose={() => setNavOpen(false)}
+        dragControls={tabDrag}
+        editMode={editMode}
+        onToggleEditMode={() => setEditMode((current) => !current)}
       />
 
       <main>
@@ -161,17 +158,26 @@ export default function AppPage() {
           </button>
           {activeTab && <span className="tab-dot" style={{ background: activeTab.color, width: 8, height: 8 }} />}
           <span className="mobile-topbar-title">{activeTab ? activeTab.name : 'Ledger'}</span>
-          {activeTab && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
             <button
               type="button"
-              className="menu-toggle"
-              style={{ marginLeft: 'auto' }}
-              onClick={() => setAddFieldOpen(true)}
-              aria-label="Dodaj pole"
+              className={`menu-toggle ${editMode ? 'is-active' : ''}`}
+              onClick={() => setEditMode((current) => !current)}
+              aria-label={editMode ? 'Zakończ edycję układu' : 'Edytuj układ'}
             >
-              <Plus size={18} />
+              <Pencil size={16} />
             </button>
-          )}
+            {activeTab && (
+              <button
+                type="button"
+                className="menu-toggle"
+                onClick={() => setAddFieldOpen(true)}
+                aria-label="Dodaj pole"
+              >
+                <Plus size={18} />
+              </button>
+            )}
+          </div>
         </div>
 
         {activeTab ? (
@@ -179,7 +185,7 @@ export default function AppPage() {
             <header className="main-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <span className="tab-dot" style={{ background: activeTab.color, width: 8, height: 8 }} />
-                <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, letterSpacing: '-0.02em' }}>
+                <h1 style={{ margin: 0, fontSize: 21, fontWeight: 600, letterSpacing: '-0.02em' }}>
                   {activeTab.name}
                 </h1>
               </div>
@@ -204,7 +210,7 @@ export default function AppPage() {
                 </div>
               ) : (
                 <FieldsMasonry
-                  widgets={[...activeTab.widgets].sort((a, b) => a.position - b.position)}
+                  widgets={activeWidgets}
                   renderCard={(widget) => (
                     <WidgetCard
                       widget={widget}
@@ -214,12 +220,10 @@ export default function AppPage() {
                       onAddEntry={() => setEntryModal({ widget, entry: null })}
                       onEditEntry={(entry) => setEntryModal({ widget, entry })}
                       onChanged={refreshTabs}
-                      onDragStart={(e) => handleWidgetDragStart(e, widget.id)}
-                      onDragOver={(e) => handleWidgetDragOver(e, widget.id)}
-                      onDrop={(e) => handleWidgetDrop(e, widget.id)}
-                      onDragEnd={handleWidgetDragEnd}
-                      isDragging={draggedWidgetId === widget.id}
-                      isDragOver={dragOverWidgetId === widget.id}
+                      onRename={(label) => handleRenameWidget(widget.id, label)}
+                      onDelete={() => handleDeleteWidget(widget.id)}
+                      dragControls={widgetDrag}
+                      editMode={editMode}
                     />
                   )}
                 />

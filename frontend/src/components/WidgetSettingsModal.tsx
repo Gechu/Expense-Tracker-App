@@ -23,7 +23,6 @@ interface WidgetSettingsModalProps {
 }
 
 export default function WidgetSettingsModal({ widget, color, tabs, onClose, onChanged }: WidgetSettingsModalProps) {
-  const [label, setLabel] = useState(widget.label)
   const currencyConfig = widget.type === 'currency' ? (widget.config as CurrencyConfig | null) : null
   const formulaConfig = widget.type === 'formula' ? (widget.config as FormulaConfig | null) : null
 
@@ -51,13 +50,10 @@ export default function WidgetSettingsModal({ widget, color, tabs, onClose, onCh
     try {
       if (widget.type === 'currency') {
         await updateWidget(widget.id, {
-          label,
           config: { amount: Number(amount || 0), from_currency: fromCurrency, to_currency: toCurrency, rate: Number(rate || 0) },
         })
-      } else if (widget.type === 'formula') {
-        await updateWidget(widget.id, { label, config: { tokens } })
       } else {
-        await updateWidget(widget.id, { label })
+        await updateWidget(widget.id, { config: { tokens } })
       }
       onChanged()
     } catch (err) {
@@ -89,21 +85,9 @@ export default function WidgetSettingsModal({ widget, color, tabs, onClose, onCh
 
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="modal-body">
-          <label className="field" style={{ marginTop: 18 }}>
-            <span className="text-label">Nazwa</span>
-            <input
-              type="text"
-              className="input"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              required
-              autoFocus
-            />
-          </label>
-
           {widget.type === 'currency' && (
             <>
-              <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+              <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
                 <label className="field" style={{ flex: 1 }}>
                   <span className="text-label">Kwota</span>
                   <input
@@ -125,7 +109,7 @@ export default function WidgetSettingsModal({ widget, color, tabs, onClose, onCh
           )}
 
           {widget.type === 'formula' && (
-            <>
+            <div style={{ marginTop: 18 }}>
               <FormulaBuilder tokens={tokens} onChange={setTokens} referenceFields={referenceFields} color={color} />
               {!canSubmit && (
                 <span style={{ display: 'block', marginTop: 8, color: 'var(--text-faint)', fontSize: 11.5 }}>
@@ -133,7 +117,7 @@ export default function WidgetSettingsModal({ widget, color, tabs, onClose, onCh
                   operatorem.
                 </span>
               )}
-            </>
+            </div>
           )}
 
           {error && (

@@ -524,15 +524,51 @@ input:focus {
 /* 12. Powłoka aplikacji - sidebar (zakładki) + treść. Poniżej 860px sidebar
    przestaje być kolumną gridu i zamienia się w nakładkę wjeżdżającą z lewej
    (.rail.is-open), chowaną domyślnie za przyciskiem .menu-toggle. */
+/* Na desktopie .shell ma stałą wysokość (100vh, bez przewijania) - panel
+   boczny i nagłówek zostają na miejscu, przewija się tylko treść zakładki
+   (.main-content) oraz, niezależnie, sama lista zakładek w panelu bocznym
+   (.rail-tabs), jeśli jest ich więcej niż mieści się na ekranie. Na mobile
+   (patrz media query niżej) wraca zwykłe przewijanie całej strony. */
 .shell {
   display: grid;
   grid-template-columns: 268px 1fr;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Elementy siatki CSS mają domyślnie min-width:auto, czyli mogą wymusić
+   poszerzenie kolumny do minimalnej szerokości swojej zawartości (np. gdy
+   w trybie edycji karty pól dostają dodatkowe ikonki w nagłówku) - stąd
+   poziomy scroll całej strony. min-width:0 pozwala głównej kolumnie
+   normalnie się kurczyć i przekazać ciasnotę dalej w dół (do elipsy na
+   tytułach kart), zamiast rozpychać całą stronę. */
+.shell > main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 @media (max-width: 860px) {
   .shell {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* Na desktopie main/.main-content są flex-boxem ze swoim własnym
+     przewijaniem (patrz bazowe reguły) - na mobile wraca zwykły przepływ,
+     bo tam przewija się cała strona (.mobile-topbar jest po prostu
+     "sticky" względem tego przewijania, patrz niżej). */
+  .shell > main {
+    display: block;
+    overflow: visible;
+  }
+
+  .main-content {
+    flex: none;
+    min-height: 0;
+    overflow-y: visible;
   }
 }
 
@@ -600,9 +636,22 @@ input:focus {
   cursor: pointer;
 }
 
+.menu-toggle.is-active {
+  background: var(--seg-thumb-bg);
+  border-color: var(--text-dim);
+}
+
 @media (max-width: 860px) {
   .mobile-topbar {
     display: flex;
+    /* Przyklejony u góry - przyciski (menu, edycja, dodaj pole) mają zostać
+       zawsze dostępne, a kafelki mają scrollować się pod spodem. Tło musi
+       być kryjące (nie przezroczyste), inaczej przewijane karty byłyby
+       widoczne "przez" pasek. */
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--card-solid-bg);
   }
 
   .menu-toggle {
@@ -615,6 +664,12 @@ input:focus {
   flex-direction: column;
   gap: 5px;
   margin-top: 24px;
+  /* .rail ma teraz stałą wysokość (100vh na desktopie, tak samo na mobile
+     dzięki position:fixed) - flex:1 sprawia, że to ta lista zajmuje resztę
+     miejsca i to ona się przewija, gdy zakładek jest więcej niż się mieści,
+     a nie cały panel boczny (logo i konto na dole zostają na miejscu). */
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -622,6 +677,21 @@ input:focus {
   display: flex;
   align-items: center;
   gap: 4px;
+  border-radius: 12px;
+  transition: opacity 0.15s ease;
+}
+
+.tab-drag-handle {
+  flex: none;
+  color: var(--text-faint);
+  cursor: grab;
+  /* Bez tego dotknięcie i przesunięcie palca po prostu przewija stronę,
+     zamiast trafić do naszej obsługi Pointer Events (patrz useDragReorder). */
+  touch-action: none;
+}
+
+.tab-drag-handle:active {
+  cursor: grabbing;
 }
 
 /* Sam przycisk zakładki - kropka koloru + nazwa. .is-active dostaje
@@ -684,6 +754,47 @@ input:focus {
   background: var(--hover-bg);
 }
 
+/* Przełącznik trybu edycji - dopiero w tym trybie widać uchwyty i da się
+   przeciągać zakładki/pola, żeby nie robić tego przypadkiem przy zwykłym
+   korzystaniu z aplikacji. */
+.edit-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--chip-border);
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.edit-mode-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-dim);
+}
+
+.edit-mode-btn.is-active {
+  background: var(--seg-thumb-bg);
+  border-color: var(--panel-border);
+  color: var(--text);
+}
+
+/* Na wąskim ekranie ten sam przełącznik jest już w górnym pasku (patrz
+   .menu-toggle w AppPage) - w panelu bocznym (schowanym za hamburgerem)
+   byłby tylko zbędnym duplikatem, do którego dodatkowo trzeba się
+   przeklikać. */
+@media (max-width: 860px) {
+  .edit-mode-btn {
+    display: none;
+  }
+}
+
+
 .add-tab-btn {
   display: flex;
   align-items: center;
@@ -743,7 +854,8 @@ input:focus {
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 28px 32px;
+  flex: none;
+  padding: 20px 32px;
   border-bottom: 1px solid var(--hairline);
 }
 
@@ -759,6 +871,11 @@ input:focus {
 
 .main-content {
   padding: 32px;
+  /* Jedyna scrollowana część na desktopie - nagłówek i panel boczny mają
+     zostać na miejscu (patrz .shell > main i .rail-tabs). */
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .empty-state {
@@ -773,10 +890,13 @@ input:focus {
 }
 
 /* 13. Modal - np. tworzenie/edycja zakładki */
+/* z-index wyżej niż mobilny, wysuwany panel boczny (.rail.is-open, 40) -
+   inaczej modal otwarty z zębatki zakładki w trybie edycji (dostępnej
+   tylko w tym wysuwanym panelu) chowałby się pod nim. */
 .scrim {
   position: fixed;
   inset: 0;
-  z-index: 30;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -786,6 +906,16 @@ input:focus {
   -webkit-backdrop-filter: blur(9px);
   animation: fade 0.2s ease both;
   overflow-y: auto;
+}
+
+/* Osobne, przyciemnione tło za wysuwanym panelem bocznym na mobile (kliknięcie
+   w nie zamyka menu) - musi zostać POD panelem (.rail: 40), w przeciwieństwie
+   do .scrim modali, które mają być NAD nim. */
+.nav-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: var(--scrim);
 }
 
 @keyframes fade {
@@ -933,6 +1063,23 @@ input:focus {
   flex: none;
   color: var(--text-faint);
   cursor: grab;
+  /* Bez tego dotknięcie i przesunięcie palca po prostu przewija stronę,
+     zamiast trafić do naszej obsługi Pointer Events (patrz useDragReorder). */
+  touch-action: none;
+}
+
+/* Unosząca się kopia przeciąganego kafelka/wiersza - patrz DragGhost.tsx.
+   position:fixed + portal do body, więc nic (np. przewijane listy) jej nie
+   utnie; lekki obrót i cień, żeby wizualnie "leżała" nad resztą interfejsu. */
+.drag-ghost {
+  position: fixed;
+  z-index: 900;
+  pointer-events: none;
+  opacity: 0.95;
+  transform: rotate(-1.5deg) scale(1.03);
+  box-shadow: 0 28px 55px -18px rgba(0, 0, 0, 0.55);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 .field-drag-handle:active {
@@ -954,6 +1101,27 @@ input:focus {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Nazwa pola/tabeli edytowana wprost na kafelku w trybie edycji, zamiast
+   przez modal ustawień - dla tych typów to jedyne, co było tam do zmiany. */
+.field-title-input {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--chip-border);
+  padding: 0 0 1px;
+  outline: none;
+}
+
+.field-title-input:focus {
+  border-bottom-color: var(--text-dim);
 }
 
 /* Kolorowa "pigułka" z typem pola (Pole / Tabela) - kolor pochodzi

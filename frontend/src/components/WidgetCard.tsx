@@ -1,7 +1,8 @@
-import { GripVertical, Plus, Settings, X } from 'lucide-react'
-import { useState, type DragEvent, type MouseEvent } from 'react'
+import { GripVertical, Plus, Settings, Trash2, X } from 'lucide-react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { formatAmount, formatDate } from '../lib/format'
 import { deleteEntry, type CurrencyConfig, type FormulaConfig, type Widget, type WidgetEntry } from '../api/widgets'
+import type { DragReorderControls } from '../hooks/useDragReorder'
 import { OP_LABELS } from './FormulaBuilder'
 
 const BADGES: Record<Widget['type'], string> = {
@@ -20,12 +21,11 @@ interface WidgetCardProps {
   onAddEntry: () => void
   onEditEntry: (entry: WidgetEntry) => void
   onChanged: () => void
-  onDragStart: (event: DragEvent<HTMLDivElement>) => void
-  onDragOver: (event: DragEvent<HTMLDivElement>) => void
-  onDrop: (event: DragEvent<HTMLDivElement>) => void
-  onDragEnd: () => void
-  isDragging: boolean
-  isDragOver: boolean
+  onRename: (label: string) => void
+  onDelete: () => void
+  dragControls: DragReorderControls
+  /** Tryb edycji układu - tylko wtedy da się przeciągać karty */
+  editMode: boolean
 }
 
 export default function WidgetCard({
@@ -36,18 +36,31 @@ export default function WidgetCard({
   onAddEntry,
   onEditEntry,
   onChanged,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
-  isDragging,
-  isDragOver,
+  onRename,
+  onDelete,
+  dragControls,
+  editMode,
 }: WidgetCardProps) {
-  // Karta jest "draggable" tylko w chwili, gdy przycisk myszy jest wciśnięty
-  // na uchwycie (ikonka kropek) - inaczej każde zwykłe kliknięcie gdziekolwiek
-  // na karcie (np. na pigułce formuły) potrafi przypadkiem wywołać natywny
-  // drag przeglądarki i zostawić "widmo" karty w miejscu, gdzie mysz spoczęła.
-  const [canDrag, setCanDrag] = useState(false)
+  const [labelDraft, setLabelDraft] = useState(widget.label)
+
+  useEffect(() => {
+    setLabelDraft(widget.label)
+  }, [widget.label])
+
+  // Nazwa edytuje się wprost na kafelku w trybie edycji - dla każdego typu
+  // pola. Zębatka (gdy jest) otwiera modal z resztą, właściwą konfiguracją
+  // (formuła/waluta), a nie z podstawowym info jak nazwa.
+  const isNameEditable = editMode
+  const canDeleteInline = editMode && (widget.type === 'single_value' || widget.type === 'table')
+
+  function commitLabel() {
+    const trimmed = labelDraft.trim()
+    if (trimmed && trimmed !== widget.label) {
+      onRename(trimmed)
+    } else {
+      setLabelDraft(widget.label)
+    }
+  }
 
   const badgeStyle = {
     color,
@@ -66,18 +79,13 @@ export default function WidgetCard({
   const currencyConfig = widget.type === 'currency' ? (widget.config as CurrencyConfig | null) : null
   const formulaConfig = widget.type === 'formula' ? (widget.config as FormulaConfig | null) : null
 
+  const isDragging = dragControls.draggedId === widget.id
+  const isDragOver = dragControls.overId === widget.id
+
   return (
     <div
       className="panel field-card"
-      draggable={canDrag}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onDragEnd={() => {
-        setCanDrag(false)
-        onDragEnd()
-      }}
-      onMouseUp={() => setCanDrag(false)}
+      ref={(el) => dragControls.registerNode(widget.id, el)}
       style={{
         opacity: isDragging ? 0.4 : 1,
         outline: isDragOver ? `2px dashed ${color}` : 'none',
@@ -85,20 +93,48 @@ export default function WidgetCard({
       }}
     >
       <div className="field-card-header">
-        <GripVertical
-          size={14}
-          className="field-drag-handle"
-          onMouseDown={() => setCanDrag(true)}
-          onMouseUp={() => setCanDrag(false)}
-        />
+        {editMode && (
+          <GripVertical
+            size={14}
+            className="field-drag-handle"
+            onPointerDown={(e) => dragControls.handlePointerDown(widget.id, e)}
+            onPointerMove={dragControls.handlePointerMove}
+            onPointerUp={dragControls.handlePointerUp}
+          />
+        )}
         <span className="tab-dot" style={{ background: color, width: 8, height: 8 }} />
-        <span className="field-title">{widget.label}</span>
+        {isNameEditable ? (
+          <input
+            type="text"
+            className="field-title-input"
+            value={labelDraft}
+            onChange={(e) => setLabelDraft(e.target.value)}
+            onBlur={commitLabel}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+              if (e.key === 'Escape') {
+                setLabelDraft(widget.label)
+                ;(e.target as HTMLInputElement).blur()
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span className="field-title">{widget.label}</span>
+        )}
         <span className="field-badge" style={badgeStyle}>
           {BADGES[widget.type]}
         </span>
-        <button type="button" className="field-icon-btn" onClick={onOpenSettings} aria-label="Ustawienia pola">
-          <Settings size={12} />
-        </button>
+        {(widget.type === 'formula' || widget.type === 'currency') && (
+          <button type="button" className="field-icon-btn" onClick={onOpenSettings} aria-label="Ustawienia pola">
+            <Settings size={12} />
+          </button>
+        )}
+        {canDeleteInline && (
+          <button type="button" className="field-icon-btn" onClick={onDelete} aria-label="Usuń pole">
+            <Trash2 size={12} />
+          </button>
+        )}
       </div>
 
       {widget.type === 'single_value' && (
