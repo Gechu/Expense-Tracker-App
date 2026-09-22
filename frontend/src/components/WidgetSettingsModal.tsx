@@ -101,7 +101,10 @@ export default function WidgetSettingsModal({ widget, color, tabs, onClose, onCh
                 </label>
                 <RateField rate={rate} onChange={setRate} fromCurrency={fromCurrency} toCurrency={toCurrency} />
               </div>
-              <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+              {/* Selecty pod sobą, nie obok siebie - część nazw walut (np.
+                 "Rand południowoafrykański") nie mieści się w połówce wąskiego
+                 modala i przycina się bez wielokropka tuż przy strzałce. */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
                 <CurrencySelect label="Z waluty" value={fromCurrency} onChange={setFromCurrency} />
                 <CurrencySelect label="Na walutę" value={toCurrency} onChange={setToCurrency} />
               </div>

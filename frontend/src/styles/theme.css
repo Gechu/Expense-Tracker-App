@@ -1095,6 +1095,11 @@ input:focus {
 }
 
 .field-title {
+  /* Bez flex:1 + min-width:0 element flexowy domyślnie nie kurczy się
+     poniżej szerokości swojej treści (min-width:auto) - text-overflow
+     nigdy by się nie uruchomił, patrz analogiczny komentarz przy .shell > main. */
+  flex: 1;
+  min-width: 0;
   font-size: 13.5px;
   font-weight: 500;
   letter-spacing: -0.005em;
@@ -1303,10 +1308,13 @@ input:focus {
 }
 
 .token-field {
+  max-width: 200px;
   padding: 6px 10px;
   border-radius: 8px;
   font-size: 11.5px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: default;
 }
 

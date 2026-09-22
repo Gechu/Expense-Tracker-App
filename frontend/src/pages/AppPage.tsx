@@ -49,6 +49,18 @@ export default function AppPage() {
     }
   }, [navigate])
 
+  // Na mobile cała strona scrolluje jako jedna całość (.rail jest position:fixed
+  // nałożony na wierzch) - bez tego kafelki pod otwartą szufladą dałoby się
+  // przewinąć "przez" przyciemnione tło.
+  useEffect(() => {
+    if (!navOpen) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [navOpen])
+
   async function refreshTabs() {
     const fresh = await listTabs()
     setTabs(fresh)
@@ -128,6 +140,9 @@ export default function AppPage() {
 
   const widgetLabels = Object.fromEntries(
     tabs.flatMap((t) => t.widgets.map((w) => [w.id, w.label] as const)),
+  )
+  const widgetColors = Object.fromEntries(
+    tabs.flatMap((t) => t.widgets.map((w) => [w.id, t.color] as const)),
   )
 
   return (
@@ -216,6 +231,7 @@ export default function AppPage() {
                       widget={widget}
                       color={activeTab.color}
                       widgetLabels={widgetLabels}
+                      widgetColors={widgetColors}
                       onOpenSettings={() => setWidgetSettingsTarget(widget)}
                       onAddEntry={() => setEntryModal({ widget, entry: null })}
                       onEditEntry={(entry) => setEntryModal({ widget, entry })}

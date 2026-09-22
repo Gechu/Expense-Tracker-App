@@ -1,4 +1,5 @@
 import { GripVertical, Pencil, Plus, Settings } from 'lucide-react'
+import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import type { User } from '../api/auth'
 import type { Tab } from '../api/tabs'
 import type { DragReorderControls } from '../hooks/useDragReorder'
@@ -29,12 +30,13 @@ interface TabRowProps {
   onSelect: () => void
   onEditTab: () => void
   dragControls: DragReorderControls
+  onDragPointerMove: (event: ReactPointerEvent<Element>) => void
 }
 
 /** Wiersz zakładki - uchwyt do przeciągania (Pointer Events, działa myszą
  * i dotykiem - patrz useDragReorder) jest widoczny tylko w trybie edycji,
  * tak samo jak zębatka (pełne ustawienia w modalu). */
-function TabRow({ tab, isActive, editMode, onSelect, onEditTab, dragControls }: TabRowProps) {
+function TabRow({ tab, isActive, editMode, onSelect, onEditTab, dragControls, onDragPointerMove }: TabRowProps) {
   const isDragging = dragControls.draggedId === tab.id
   const isDragOver = dragControls.overId === tab.id
 
@@ -53,7 +55,7 @@ function TabRow({ tab, isActive, editMode, onSelect, onEditTab, dragControls }: 
           size={13}
           className="tab-drag-handle"
           onPointerDown={(e) => dragControls.handlePointerDown(tab.id, e)}
-          onPointerMove={dragControls.handlePointerMove}
+          onPointerMove={onDragPointerMove}
           onPointerUp={dragControls.handlePointerUp}
         />
       )}
@@ -85,14 +87,37 @@ export default function Sidebar({
   onToggleEditMode,
 }: SidebarProps) {
   const initial = user.email.charAt(0).toUpperCase()
+  const railRef = useRef<HTMLElement | null>(null)
 
   function handleSelect(id: number) {
     onSelect(id)
     onClose()
   }
 
+  // Na mobilnym szuflada zakładek (.rail) leży NAD przyciemnionym tłem
+  // (.nav-scrim), które zasłania resztę ekranu - jak palec podczas
+  // przeciągania zjedzie poza szufladę (czyli na to przyciemnione tło),
+  // przeciąganie ma się od razu zakończyć (bez zmiany kolejności), zamiast
+  // dalej "wisieć" nad zasłoniętą zawartością.
+  function handleTabDragPointerMove(event: ReactPointerEvent<Element>) {
+    const rail = railRef.current
+    if (rail && dragControls.draggedId != null) {
+      const rect = rail.getBoundingClientRect()
+      const inside =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom
+      if (!inside) {
+        dragControls.handlePointerUp(event)
+        return
+      }
+    }
+    dragControls.handlePointerMove(event)
+  }
+
   return (
-    <aside className={`rail ${isOpen ? 'is-open' : ''}`}>
+    <aside className={`rail ${isOpen ? 'is-open' : ''}`} ref={railRef}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
         <div className="brand-mark brand-mark--sm" />
         <span className="brand-word" style={{ fontSize: 14.5 }}>
@@ -130,6 +155,7 @@ export default function Sidebar({
             onSelect={() => handleSelect(tab.id)}
             onEditTab={() => onEditTab(tab)}
             dragControls={dragControls}
+            onDragPointerMove={handleTabDragPointerMove}
           />
         ))}
         <button

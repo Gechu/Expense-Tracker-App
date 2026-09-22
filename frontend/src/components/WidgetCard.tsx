@@ -17,6 +17,10 @@ interface WidgetCardProps {
   color: string
   /** id widgetu -> jego nazwa, do podpisania składników formuły */
   widgetLabels: Record<number, string>
+  /** id widgetu -> kolor JEGO zakładki, do pokolorowania pigułek składników
+   * formuły po tym, skąd pochodzą (a nie kolorem zakładki, na której jest
+   * sama formuła) */
+  widgetColors: Record<number, string>
   onOpenSettings: () => void
   onAddEntry: () => void
   onEditEntry: (entry: WidgetEntry) => void
@@ -32,6 +36,7 @@ export default function WidgetCard({
   widget,
   color,
   widgetLabels,
+  widgetColors,
   onOpenSettings,
   onAddEntry,
   onEditEntry,
@@ -150,7 +155,11 @@ export default function WidgetCard({
             </div>
           </button>
           <div className="field-foot">
-            {soleEntry ? `dodano ${formatDate(soleEntry.entry_date)}` : 'kliknij, aby ustawić kwotę'}
+            {soleEntry
+              ? widget.updated_at
+                ? `zaktualizowano ${formatDate(widget.updated_at.slice(0, 10))}`
+                : ''
+              : 'kliknij, aby ustawić kwotę'}
           </div>
         </div>
       )}
@@ -210,11 +219,14 @@ export default function WidgetCard({
           <div className="token-strip" style={{ marginTop: 16 }}>
             {(formulaConfig?.tokens ?? []).map((token, index) => {
               if (token.kind === 'field') {
+                // Pigułka w kolorze zakładki źródłowej pola, nie tej, na
+                // której jest sama formuła - widać wtedy skąd bierze się wartość.
+                const fieldColor = widgetColors[token.widget_id] ?? color
                 return (
                   <span
                     key={index}
                     className="token-field"
-                    style={{ border: `1px solid ${color}3a`, background: `${color}20` }}
+                    style={{ border: `1px solid ${fieldColor}3a`, background: `${fieldColor}20` }}
                   >
                     {widgetLabels[token.widget_id] ?? 'usunięte pole'}
                   </span>

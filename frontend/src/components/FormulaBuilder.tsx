@@ -134,11 +134,16 @@ export default function FormulaBuilder({ tokens, onChange, referenceFields, colo
         {tokens.map((token, index) => {
           if (token.kind === 'field') {
             const field = referenceFields.find((f) => f.id === token.widget_id)
+            // Kolor pigułki bierze się z zakładki, do której faktycznie należy
+            // pole (field.tabColor), a nie z bieżącej zakładki (color) - żeby
+            // było widać, skąd formuła czerpie dane (patrz field-picker niżej,
+            // gdzie kropki już tak działają).
+            const fieldColor = field?.tabColor ?? color
             return (
               <span
                 key={index}
                 className="token-field"
-                style={{ border: `1px solid ${color}3a`, background: `${color}20` }}
+                style={{ border: `1px solid ${fieldColor}3a`, background: `${fieldColor}20` }}
               >
                 {field?.label ?? 'usunięte pole'}
               </span>
