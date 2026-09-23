@@ -27,6 +27,9 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
+    name = Column(String, nullable=True)
+    avatar_color = Column(String, nullable=True)
+    avatar_icon = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
     tabs = relationship("Tab", back_populates="owner", cascade="all, delete-orphan")

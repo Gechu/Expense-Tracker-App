@@ -11,6 +11,7 @@ import EntryModal from '../components/EntryModal'
 import FieldsMasonry from '../components/FieldsMasonry'
 import PinnedWidgetCard from '../components/PinnedWidgetCard'
 import PinPickerModal from '../components/PinPickerModal'
+import SettingsModal from '../components/SettingsModal'
 import Sidebar from '../components/Sidebar'
 import TabModal from '../components/TabModal'
 import WidgetCard from '../components/WidgetCard'
@@ -32,6 +33,7 @@ export default function AppPage() {
   const [navOpen, setNavOpen] = useState(false)
   const [addFieldOpen, setAddFieldOpen] = useState(false)
   const [pinPickerOpen, setPinPickerOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [widgetSettingsTarget, setWidgetSettingsTarget] = useState<Widget | null>(null)
   const [entryModal, setEntryModal] = useState<EntryModalState | null>(null)
   const [editMode, setEditMode] = useState(false)
@@ -186,6 +188,7 @@ export default function AppPage() {
         onEditTab={openEditTabModal}
         user={user}
         onLogout={handleLogout}
+        onOpenSettings={() => setSettingsOpen(true)}
         isOpen={navOpen}
         onClose={() => setNavOpen(false)}
         dragControls={tabDrag}
@@ -345,6 +348,10 @@ export default function AppPage() {
             refreshTabs()
           }}
         />
+      )}
+
+      {settingsOpen && (
+        <SettingsModal user={user} onUserChanged={setUser} onClose={() => setSettingsOpen(false)} />
       )}
 
       {pinPickerOpen && (

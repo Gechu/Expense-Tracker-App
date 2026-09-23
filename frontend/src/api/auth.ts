@@ -3,6 +3,9 @@ import { request } from './client'
 export interface User {
   id: number
   email: string
+  name: string | null
+  avatar_color: string | null
+  avatar_icon: string | null
 }
 
 export function register(email: string, password: string) {
@@ -25,4 +28,11 @@ export function logout() {
 
 export function me() {
   return request<User>('/auth/me')
+}
+
+export function updateMe(patch: Partial<Pick<User, 'name' | 'avatar_color' | 'avatar_icon'>>) {
+  return request<User>('/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  })
 }

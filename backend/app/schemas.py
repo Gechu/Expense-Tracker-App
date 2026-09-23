@@ -22,6 +22,15 @@ class UserOut(BaseModel):
 
     id: int
     email: EmailStr
+    name: str | None = None
+    avatar_color: str | None = None
+    avatar_icon: str | None = None
+
+
+class UserUpdate(BaseModel):
+    name: str | None = None
+    avatar_color: str | None = None
+    avatar_icon: str | None = None
 
 
 class WidgetEntryCreate(BaseModel):

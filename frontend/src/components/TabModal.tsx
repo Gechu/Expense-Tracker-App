@@ -1,8 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { X } from 'lucide-react'
 import { createTab, deleteTab, updateTab, type Tab } from '../api/tabs'
-
-const PALETTE = ['#3fbf94', '#e8963c', '#5b93e0', '#d9b234', '#e07aa8', '#8c95a6', '#9b7ce8']
+import { PALETTE } from '../lib/palette'
 
 interface TabModalProps {
   /** null = tworzenie nowej zakładki, Tab = edycja istniejącej */

@@ -3,6 +3,7 @@ import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import type { User } from '../api/auth'
 import type { Tab } from '../api/tabs'
 import type { DragReorderControls } from '../hooks/useDragReorder'
+import Avatar from './Avatar'
 import ThemeToggle from './ThemeToggle'
 
 interface SidebarProps {
@@ -17,6 +18,7 @@ interface SidebarProps {
   onEditTab: (tab: Tab) => void
   user: User
   onLogout: () => void
+  onOpenSettings: () => void
   /** Czy nakładka na wąskim ekranie jest otwarta (bez znaczenia na desktopie) */
   isOpen: boolean
   onClose: () => void
@@ -88,13 +90,13 @@ export default function Sidebar({
   onEditTab,
   user,
   onLogout,
+  onOpenSettings,
   isOpen,
   onClose,
   dragControls,
   editMode,
   onToggleEditMode,
 }: SidebarProps) {
-  const initial = user.email.charAt(0).toUpperCase()
   const railRef = useRef<HTMLElement | null>(null)
 
   function handleSelect(id: number) {
@@ -195,13 +197,13 @@ export default function Sidebar({
       </div>
 
       <div className="user-card">
-        <div className="user-btn">
-          <span className="avatar">{initial}</span>
+        <button type="button" className="user-btn" onClick={onOpenSettings}>
+          <Avatar user={user} />
           <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, textAlign: 'left' }}>
-            <span className="user-name">{user.email}</span>
+            <span className="user-name">{user.name || user.email}</span>
             <span className="text-meta">Konto</span>
           </span>
-        </div>
+        </button>
         <button type="button" className="btn-ghost" onClick={onLogout}>
           Wyloguj się
         </button>
