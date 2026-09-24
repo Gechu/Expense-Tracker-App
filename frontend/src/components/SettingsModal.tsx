@@ -3,13 +3,17 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { updateMe, type User } from '../api/auth'
 import Avatar from './Avatar'
 import AvatarPicker from './AvatarPicker'
+import ChangeEmailModal from './ChangeEmailModal'
+import ChangePasswordModal from './ChangePasswordModal'
+import DeleteAccountModal from './DeleteAccountModal'
 import { CURRENCIES } from '../lib/currencies'
-import { getInitialTheme } from '../styles/theme'
+import { useTheme } from '../styles/theme'
 
 interface SettingsModalProps {
   user: User
   onUserChanged: (user: User) => void
   onClose: () => void
+  onAccountDeleted: () => void
 }
 
 interface SettingsRowProps {
@@ -143,17 +147,17 @@ function NameRowControl({ user, onSaved }: { user: User; onSaved: (user: User) =
   )
 }
 
-/** Makieta - wizualnie prawdziwy przełącznik motywu, ale jeszcze nie
-   podpięty pod realne jasny/ciemny (patrz ThemeToggle.tsx, który to już
-   robi naprawdę w sidebarze). Do wdrożenia osobno. */
-function ThemeRowMock() {
-  const [value, setValue] = useState(getInitialTheme)
+/** Ten sam współdzielony stan motywu co ThemeToggle w sidebarze
+   (useTheme, useSyncExternalStore) - zmiana tu od razu odbija się
+   w sidebarze i odwrotnie, bez przeładowania. */
+function ThemeRow() {
+  const [theme, setTheme] = useTheme()
   return (
     <div className="settings-segment">
-      <button type="button" className={`settings-segment-btn ${value === 'light' ? 'is-active' : ''}`} onClick={() => setValue('light')}>
+      <button type="button" className={`settings-segment-btn ${theme === 'light' ? 'is-active' : ''}`} onClick={() => setTheme('light')}>
         Jasny
       </button>
-      <button type="button" className={`settings-segment-btn ${value === 'dark' ? 'is-active' : ''}`} onClick={() => setValue('dark')}>
+      <button type="button" className={`settings-segment-btn ${theme === 'dark' ? 'is-active' : ''}`} onClick={() => setTheme('dark')}>
         Ciemny
       </button>
     </div>
@@ -187,8 +191,13 @@ function CurrencyRowMock() {
  * - eksport/import -> to akcja (ikona), nie ustawienie do skonfigurowania;
  * - zmiana hasła/e-maila/usunięcie konta -> docelowo osobny, mały modal
  *   (jak TabModal/EntryModal), bo to wielopolowe formularze/potwierdzenia. */
-export default function SettingsModal({ user, onUserChanged, onClose }: SettingsModalProps) {
+export default function SettingsModal({ user, onUserChanged, onClose, onAccountDeleted }: SettingsModalProps) {
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+
   return (
+    <>
     <div className="scrim scrim--settings" onClick={onClose}>
       <div className="modal settings-modal" onClick={(event) => event.stopPropagation()}>
         <div className="modal-header">
@@ -215,16 +224,33 @@ export default function SettingsModal({ user, onUserChanged, onClose }: Settings
           </SettingsSection>
 
           <SettingsSection title="Konto">
-            <SettingsRow label="Zmień hasło" description="Ustaw nowe hasło do logowania" />
-            <SettingsRow label="Zmień adres e-mail" description="Zmień adres używany do logowania" />
-            <SettingsRow label="Usuń konto" description="Trwale usuwa konto i wszystkie dane" danger />
+            <SettingsRow
+              label="Zmień hasło"
+              description="Ustaw nowe hasło do logowania"
+              done
+              onClick={() => setShowPasswordModal(true)}
+            />
+            <SettingsRow
+              label="Zmień adres e-mail"
+              description="Zmień adres używany do logowania"
+              done
+              onClick={() => setShowEmailModal(true)}
+            />
+            <SettingsRow
+              label="Usuń konto"
+              description="Trwale usuwa konto i wszystkie dane"
+              danger
+              done
+              onClick={() => setShowDeleteModal(true)}
+            />
           </SettingsSection>
 
           <SettingsSection title="Aplikacja">
             <SettingsRow
               label="Motyw"
               description="Jasny albo ciemny - to samo co przełącznik w sidebarze"
-              control={<ThemeRowMock />}
+              done
+              control={<ThemeRow />}
             />
             <SettingsRow label="O aplikacji" description="Wersja i informacje o Ledgerze" control={<span className="text-meta">v0.1.0</span>} />
           </SettingsSection>
@@ -269,5 +295,25 @@ export default function SettingsModal({ user, onUserChanged, onClose }: Settings
         </div>
       </div>
     </div>
+
+    {showPasswordModal && (
+      <ChangePasswordModal onClose={() => setShowPasswordModal(false)} onSaved={() => setShowPasswordModal(false)} />
+    )}
+
+    {showEmailModal && (
+      <ChangeEmailModal
+        user={user}
+        onClose={() => setShowEmailModal(false)}
+        onSaved={(updated) => {
+          onUserChanged(updated)
+          setShowEmailModal(false)
+        }}
+      />
+    )}
+
+    {showDeleteModal && (
+      <DeleteAccountModal onClose={() => setShowDeleteModal(false)} onDeleted={onAccountDeleted} />
+    )}
+    </>
   )
 }

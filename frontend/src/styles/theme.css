@@ -1197,7 +1197,10 @@ input:focus {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 4px 24px 0;
+  /* padding-bottom niezerowy - inaczej poświata :focus ostatniego pola
+     (box-shadow spread 3px, patrz .input:focus) obcina się na krawędzi
+     tego przewijalnego kontenera. */
+  padding: 4px 24px 4px;
 }
 
 .modal-actions {

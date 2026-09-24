@@ -351,7 +351,12 @@ export default function AppPage() {
       )}
 
       {settingsOpen && (
-        <SettingsModal user={user} onUserChanged={setUser} onClose={() => setSettingsOpen(false)} />
+        <SettingsModal
+          user={user}
+          onUserChanged={setUser}
+          onClose={() => setSettingsOpen(false)}
+          onAccountDeleted={() => navigate('/login', { replace: true })}
+        />
       )}
 
       {pinPickerOpen && (

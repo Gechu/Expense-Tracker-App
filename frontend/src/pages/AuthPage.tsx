@@ -19,8 +19,8 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
     setError(null)
     try {
       if (isRegister) {
-        await register(email, password)
-        navigate('/login')
+        await register(email, password, name)
+        navigate('/app')
       } else {
         await login(email, password)
         navigate('/app')

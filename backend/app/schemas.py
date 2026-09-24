@@ -10,6 +10,7 @@ WidgetTypeLiteral = Literal["single_value", "table", "formula", "currency"]
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
+    name: str | None = None
 
 
 class UserLogin(BaseModel):
@@ -31,6 +32,20 @@ class UserUpdate(BaseModel):
     name: str | None = None
     avatar_color: str | None = None
     avatar_icon: str | None = None
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class EmailChange(BaseModel):
+    new_email: EmailStr
+    current_password: str
+
+
+class AccountDelete(BaseModel):
+    current_password: str
 
 
 class WidgetEntryCreate(BaseModel):

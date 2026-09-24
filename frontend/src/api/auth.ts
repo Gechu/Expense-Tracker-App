@@ -8,10 +8,10 @@ export interface User {
   avatar_icon: string | null
 }
 
-export function register(email: string, password: string) {
+export function register(email: string, password: string, name: string) {
   return request<User>('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, name: name || null }),
   })
 }
 
@@ -34,5 +34,26 @@ export function updateMe(patch: Partial<Pick<User, 'name' | 'avatar_color' | 'av
   return request<User>('/auth/me', {
     method: 'PATCH',
     body: JSON.stringify(patch),
+  })
+}
+
+export function changePassword(currentPassword: string, newPassword: string) {
+  return request<void>('/auth/me/password', {
+    method: 'POST',
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  })
+}
+
+export function changeEmail(newEmail: string, currentPassword: string) {
+  return request<User>('/auth/me/email', {
+    method: 'POST',
+    body: JSON.stringify({ new_email: newEmail, current_password: currentPassword }),
+  })
+}
+
+export function deleteAccount(currentPassword: string) {
+  return request<void>('/auth/me/delete', {
+    method: 'POST',
+    body: JSON.stringify({ current_password: currentPassword }),
   })
 }

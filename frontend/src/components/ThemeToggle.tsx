@@ -1,6 +1,5 @@
 import { Moon, Sun } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { applyTheme, getInitialTheme, type Theme } from '../styles/theme'
+import { useTheme } from '../styles/theme'
 
 interface ThemeToggleProps {
   /** "fixed" - pływający przycisk w rogu ekranu (ekran logowania).
@@ -9,17 +8,13 @@ interface ThemeToggleProps {
 }
 
 export default function ThemeToggle({ variant = 'fixed' }: ThemeToggleProps) {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme)
-
-  useEffect(() => {
-    applyTheme(theme)
-  }, [theme])
+  const [theme, setTheme] = useTheme()
 
   return (
     <button
       type="button"
       className={variant === 'inline' ? 'theme-toggle theme-toggle--inline' : 'theme-toggle'}
-      onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
       aria-label="Przełącz motyw jasny/ciemny"
       title="Przełącz motyw"
     >
