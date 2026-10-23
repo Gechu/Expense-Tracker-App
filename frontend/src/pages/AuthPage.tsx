@@ -43,7 +43,7 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
       <div className="auth-center">
         <div className="brand">
           <div className="brand-mark" />
-          <span className="brand-word">Ledger</span>
+          <span className="brand-word">Expense App</span>
         </div>
 
         <div className="panel panel--lg auth-card">

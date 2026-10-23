@@ -202,7 +202,7 @@ export default function AppPage() {
             <Menu size={18} />
           </button>
           {activeTab && <span className="tab-dot" style={{ background: activeTab.color, width: 8, height: 8 }} />}
-          <span className="mobile-topbar-title">{activeTab ? activeTab.name : 'Ledger'}</span>
+          <span className="mobile-topbar-title">{activeTab ? activeTab.name : 'Expense App'}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
             <button
               type="button"

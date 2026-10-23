@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 COMPOSE="docker compose -f docker-compose.prod.yml"
-BACKUP_DIR="${BACKUP_DIR:-$HOME/ledger-backups}"
+BACKUP_DIR="${BACKUP_DIR:-$HOME/expense-app-backups}"
 
 [ -f .env ] || { echo "Brak pliku .env (wzór: .env.production.example)"; exit 1; }
 

@@ -252,7 +252,7 @@ export default function SettingsModal({ user, onUserChanged, onClose, onAccountD
               done
               control={<ThemeRow />}
             />
-            <SettingsRow label="O aplikacji" description="Wersja i informacje o Ledgerze" control={<span className="text-meta">v0.1.0</span>} />
+            <SettingsRow label="O aplikacji" description="Wersja i informacje o aplikacji" control={<span className="text-meta">v0.1.0</span>} />
           </SettingsSection>
 
           <SettingsSection title="Dane">

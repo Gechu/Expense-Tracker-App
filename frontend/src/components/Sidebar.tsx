@@ -131,7 +131,7 @@ export default function Sidebar({
       <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
         <div className="brand-mark brand-mark--sm" />
         <span className="brand-word" style={{ fontSize: 14.5 }}>
-          Ledger
+          Expense App
         </span>
         <ThemeToggle variant="inline" />
       </div>
