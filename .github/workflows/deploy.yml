@@ -56,12 +56,13 @@ jobs:
 
       - name: Wdróż przez SSH
         env:
-          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          # Klucz zakodowany w base64 (jedna linia) - omija problemy z końcówkami
+          # linii i zawijaniem przy kopiowaniu klucza z terminala
+          SSH_KEY_B64: ${{ secrets.DEPLOY_SSH_KEY_B64 }}
         run: |
           install -m 700 -d ~/.ssh
-          # tr: klucz skopiowany z Windowsa bywa z końcówkami CRLF, co psuje jego format
-          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_deploy
+          printf '%s' "$SSH_KEY_B64" | tr -d '[:space:]' | base64 -d > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          ssh-keygen -y -f ~/.ssh/id_deploy > /dev/null || { echo "Sekret DEPLOY_SSH_KEY ma niepoprawny format klucza"; exit 1; }
+          ssh-keygen -y -f ~/.ssh/id_deploy > /dev/null || { echo "Sekret DEPLOY_SSH_KEY_B64 ma niepoprawny format klucza"; exit 1; }
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new \
             gechu@100.125.238.101 'cd ~/expense-app && ./deploy.sh'
