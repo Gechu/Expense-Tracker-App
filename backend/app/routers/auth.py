@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app import models, schemas
+from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
 from app.security import create_access_token, hash_password, verify_password
@@ -19,7 +20,7 @@ def set_auth_cookie(response: Response, user_id: int) -> None:
         value=token,
         httponly=True,
         samesite="lax",
-        secure=False,  # ustawić na True w produkcji (wymaga HTTPS)
+        secure=settings.cookie_secure,
         max_age=COOKIE_MAX_AGE_SECONDS,
         path="/",
     )

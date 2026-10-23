@@ -1,4 +1,6 @@
-const API_URL = 'http://localhost:8000'
+/* `??` a nie `||`: pusty VITE_API_URL jest świadomą wartością (API pod tą samą
+   domeną co front, za reverse proxy - wtedy ścieżki są względne). */
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 /* Współdzielony fetch wrapper - dorzuca ciasteczko sesji (credentials),
    nagłówek JSON i zamienia odpowiedzi z błędem na wyjątek z czytelnym
