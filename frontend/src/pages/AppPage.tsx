@@ -1,6 +1,6 @@
 import { Menu, Pencil, Plus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { logout, me, type User } from '../api/auth'
 import { listPins, unpin, updatePinPosition, type Pin } from '../api/pins'
 import { listTabs, updateTab, type Tab } from '../api/tabs'
@@ -27,7 +27,6 @@ export default function AppPage() {
   const [user, setUser] = useState<User | null>(null)
   const [tabs, setTabs] = useState<Tab[]>([])
   const [pins, setPins] = useState<Pin[]>([])
-  const [activeTabId, setActiveTabId] = useState<number | null>(null)
   const [tabModalOpen, setTabModalOpen] = useState(false)
   const [tabModalTarget, setTabModalTarget] = useState<Tab | null>(null)
   const [navOpen, setNavOpen] = useState(false)
@@ -38,18 +37,16 @@ export default function AppPage() {
   const [entryModal, setEntryModal] = useState<EntryModalState | null>(null)
   const [editMode, setEditMode] = useState(false)
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   useEffect(() => {
     let active = true
-    // tabs[0] to zawsze strona główna (backend sortuje is_home first) - staje
-    // się domyślną aktywną zakładką, więc pokazuje się od razu po wejściu.
     Promise.all([me(), listTabs(), listPins()])
       .then(([currentUser, currentTabs, currentPins]) => {
         if (!active) return
         setUser(currentUser)
         setTabs(currentTabs)
         setPins(currentPins)
-        if (currentTabs.length > 0) setActiveTabId(currentTabs[0].id)
       })
       .catch(() => {
         if (active) navigate('/login', { replace: true })
@@ -96,6 +93,21 @@ export default function AppPage() {
     navigate('/login', { replace: true })
   }
 
+  const homeTab = tabs.find((t) => t.is_home) ?? null
+
+  // Aktywna zakładka siedzi w adresie (?tab=ID), więc odświeżenie strony ją
+  // zachowuje, a Wstecz/Dalej przechodzą między zakładkami. Brak parametru
+  // albo nieistniejące ID (np. usunięta zakładka) = strona główna; backend
+  // sortuje is_home first, więc to też domyślny widok po wejściu.
+  const requestedTabId = Number(searchParams.get('tab'))
+  const activeTab = tabs.find((t) => t.id === requestedTabId) ?? homeTab
+  const activeTabId = activeTab?.id ?? null
+
+  function selectTab(id: number, replace = false) {
+    if (id === activeTabId) return
+    setSearchParams(id === homeTab?.id ? {} : { tab: String(id) }, { replace })
+  }
+
   function openCreateTabModal() {
     setTabModalTarget(null)
     setTabModalOpen(true)
@@ -111,25 +123,21 @@ export default function AppPage() {
       const exists = current.some((t) => t.id === saved.id)
       return exists ? current.map((t) => (t.id === saved.id ? saved : t)) : [...current, saved]
     })
-    setActiveTabId(saved.id)
+    selectTab(saved.id)
     setTabModalOpen(false)
   }
 
   function handleTabDeleted(id: number) {
-    setTabs((current) => {
-      const next = current.filter((t) => t.id !== id)
-      setActiveTabId((currentActive) => (currentActive === id ? (next[0]?.id ?? null) : currentActive))
-      return next
-    })
+    setTabs((current) => current.filter((t) => t.id !== id))
+    // replace: usunięta zakładka nie ma zostać w historii (cofnięcie wracałoby do nieistniejącej)
+    if (id === activeTabId && homeTab) selectTab(homeTab.id, true)
     setTabModalOpen(false)
   }
 
-  const homeTab = tabs.find((t) => t.is_home) ?? null
   // Strona główna jest zawsze pierwsza i nieprzesuwalna - nie bierze udziału
   // w przeciąganiu/zmianie kolejności zwykłych zakładek.
   const regularTabs = tabs.filter((t) => !t.is_home)
 
-  const activeTab = tabs.find((t) => t.id === activeTabId) ?? null
   // useMemo (nie zwykłe [...].sort() przy każdym renderze) - inaczej FieldsMasonry
   // dostaje "nową" tablicę i przelicza cały układ murku od zera przy każdej
   // aktualizacji stanu przeciągania (a to potrafi lecieć kilkadziesiąt razy
@@ -183,7 +191,7 @@ export default function AppPage() {
         homeTab={homeTab}
         tabs={regularTabs}
         activeTabId={activeTabId}
-        onSelect={setActiveTabId}
+        onSelect={(id) => selectTab(id)}
         onAddTab={openCreateTabModal}
         onEditTab={openEditTabModal}
         user={user}
@@ -266,7 +274,7 @@ export default function AppPage() {
                     renderCard={(pin) => (
                       <PinnedWidgetCard
                         pin={pin}
-                        onOpenSource={() => setActiveTabId(pin.tab_id)}
+                        onOpenSource={() => selectTab(pin.tab_id)}
                         onUnpin={async () => {
                           await unpin(pin.id)
                           await refreshTabs()

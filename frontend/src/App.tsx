@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppPage from './pages/AppPage'
 import AuthPage from './pages/AuthPage'
+import NotFoundPage from './pages/NotFoundPage'
 
 function App() {
   return (
@@ -9,6 +10,7 @@ function App() {
       <Route path="/login" element={<AuthPage mode="login" />} />
       <Route path="/register" element={<AuthPage mode="register" />} />
       <Route path="/app" element={<AppPage />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
 }
