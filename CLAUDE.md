@@ -23,6 +23,15 @@ Jedna zakładka na użytkownika ma `is_home=true` ("Strona główna") - tworzona
 
 `User` ma opcjonalne `name`, `avatar_color`, `avatar_icon` (wszystkie `nullable`, brak wartości = domyślny wygląd sprzed tej funkcji - gradient + inicjał e-maila). Bez uploadu zdjęcia - `avatar_color` to jeden z 7 kolorów z `lib/palette.ts` (ta sama paleta co kolory zakładek), `avatar_icon` to klucz do jednej z 9 gotowych ikon `lucide-react` w `lib/avatarIcons.ts` (albo `null` = litera-inicjał).
 
+## Wdrożenie (serwer własny)
+
+- **Serwer**: `gechu@100.125.238.101` (Ubuntu, hostname `gechuserver`, dostępny tylko przez Tailscale), obok stoi Nextcloud na porcie 8080 - nie ruszać.
+- **Adres aplikacji**: `https://gechuserver.tail8d8903.ts.net:8443` (tylko sieć Tailscale). HTTPS robi `tailscale serve --https=8443` -> `localhost:8081`; to jedyna rzecz konfigurowana przez sudo.
+- **Architektura**: `docker-compose.prod.yml` (projekt `expense-app`) - `db` (Postgres 16, bez wystawionego portu), `backend` (przy starcie `alembic upgrade head` + uvicorn), `web` (nginx: zbudowany front + proxy `/api/` -> backend z ucięciem prefiksu, bo backend nie ma `/api`). Front i API są pod jednym originem, więc ciasteczko `SameSite=Lax` działa, a CORS nie jest używany. Front budowany z `VITE_API_URL=/api`.
+- **Na serwerze**: repo w `~/expense-app`, sekrety w `~/expense-app/.env` (poza gitem, wzór: `.env.production.example`), kopie bazy w `~/expense-app-backups` (ostatnie 10, robione przez `deploy.sh` przed każdym wdrożeniem).
+- **Wdrożenie**: `ssh gechu@100.125.238.101 'cd ~/expense-app && ./deploy.sh'` - `git pull --ff-only`, backup, `docker compose up -d --build`. W klonie na serwerze ustawione `core.fileMode false` (na Windowsie `deploy.sh` nie ma bitu wykonywalnego w gicie).
+- **Zmiana nazwy projektu Docker = nowy wolumen bazy** (stary zostaje osierocony). Przy zmianie nazwy `name:` w compose najpierw zrobić backup.
+
 ## Konwencje pracy
 
 - **Cały UI po polsku**, w tym komentarze w kodzie dot. nietrywialnych decyzji (komentarze tylko tam, gdzie "dlaczego" nie jest oczywiste - bez opisowych komentarzy).
@@ -67,7 +76,7 @@ Duży, wieloetapowy commit obejmujący cały tryb edycji układu:
 9. **Wydajność na mobile** - dwie poprawki po zgłoszeniu lagów: (a) `activeWidgets` zmemoizowane (`useMemo`) w `AppPage.tsx`, żeby `FieldsMasonry` nie przeliczał całego układu masonry przy każdej aktualizacji stanu przeciągania; (b) `handlePointerMove` w hooku tylko zapisuje pozycję do refa - cała kosztowna praca (hit-testing, autoscroll, pozycja duszka) liczona raz na klatkę animacji (`requestAnimationFrame`), a nie przy każdym surowym zdarzeniu dotyku.
 10. **Revert edycji zakładek do modala** - próbne inline-edytowanie nazwy/koloru zakładki w `Sidebar` zostało wycofane na wyraźną prośbę użytkownika; wrócił pełny `TabModal` (nazwa + kolor + usuwanie), a zębatka otwierająca go jest widoczna tylko w trybie edycji.
 
-### Niezacommitowane (stan na teraz)
+### Zmiany po `7ec74ed` (już zacommitowane)
 
 - **`frontend/src/components/Sidebar.tsx`** - przeciąganie zakładki w otwartym menu mobilnym (`.rail`, leży nad pełnoekranowym `.nav-scrim`) teraz **anuluje się automatycznie**, gdy wskaźnik/palec wyjdzie poza granice szuflady (`.rail`) - wcześniej przeciąganie "żyło dalej" nad przyciemnionym tłem (duszek wisiał, bez możliwości zmiany kolejności, ale gest się nie kończył). Dodano `railRef` + wrapper `handleTabDragPointerMove`, który przy wyjściu poza `.rail` wywołuje `dragControls.handlePointerUp` zamiast `handlePointerMove`, kończąc przeciąganie bez reorderu. Nie dotyczy przeciągania kafelków (`WidgetCard`) ani zakładek na desktopie poza tym samym mechanizmem granic.
 - **`frontend/src/pages/AppPage.tsx`** - z otwartym mobilnym menu (`.rail.is-open`) dało się dalej przewijać kafelki pod przyciemnionym tłem (`.nav-scrim` samo w sobie nie blokuje scrolla, bo na mobile scrolluje się cała strona - `.shell`/`.main-content` mają tam `overflow: visible`, patrz pkt 4 w `7ec74ed` wyżej). Dodano `useEffect` na `navOpen`, który na czas otwarcia menu ustawia `document.body.style.overflow = 'hidden'` (przywracając poprzednią wartość przy zamknięciu/odmontowaniu). Zweryfikowane w przeglądarce na 375px z 14 polami w zakładce - scroll strony faktycznie zablokowany przy otwartym menu, wraca po zamknięciu.
