@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { createEntry, deleteEntry, updateEntry, type WidgetEntry } from '../api/widgets'
+import AmountInput from './AmountInput'
 
 interface EntryModalProps {
   widgetId: number
@@ -84,15 +85,7 @@ export default function EntryModal({ widgetId, entry, showLabel, nextPosition, o
           <div style={{ display: 'flex', gap: 10, marginTop: showLabel ? 12 : 18 }}>
             <label className="field" style={{ flex: 1 }}>
               <span className="text-label">Kwota</span>
-              <input
-                type="number"
-                step="0.01"
-                className="input"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-                autoFocus={!showLabel}
-              />
+              <AmountInput value={amount} onChange={setAmount} required autoFocus={!showLabel} placeholder="" />
             </label>
             <label className="field" style={{ flex: 1 }}>
               <span className="text-label">Data</span>

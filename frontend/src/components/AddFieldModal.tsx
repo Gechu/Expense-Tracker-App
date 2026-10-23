@@ -2,6 +2,7 @@ import { ArrowLeftRight, Sigma, Table2, Type, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { createEntry, createWidget, type FormulaToken, type WidgetType } from '../api/widgets'
 import type { Tab } from '../api/tabs'
+import AmountInput from './AmountInput'
 import CurrencySelect from './CurrencySelect'
 import FormulaBuilder, { isFormulaComplete, type ReferenceField } from './FormulaBuilder'
 import RateField from './RateField'
@@ -131,14 +132,7 @@ export default function AddFieldModal({ tabId, nextPosition, color, tabs, onClos
             <div className="field-animate" style={{ display: 'flex', gap: 10, marginTop: 12 }}>
               <label className="field" style={{ flex: 1 }}>
                 <span className="text-label">Kwota</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="input"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                />
+                <AmountInput value={amount} onChange={setAmount} />
               </label>
               <label className="field" style={{ flex: 1 }}>
                 <span className="text-label">Data</span>
@@ -157,15 +151,7 @@ export default function AddFieldModal({ tabId, nextPosition, color, tabs, onClos
               <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
                 <label className="field" style={{ flex: 1 }}>
                   <span className="text-label">Kwota</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="input"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.00"
-                    required
-                  />
+                  <AmountInput value={amount} onChange={setAmount} required />
                 </label>
                 <RateField rate={rate} onChange={setRate} fromCurrency={fromCurrency} toCurrency={toCurrency} />
               </div>

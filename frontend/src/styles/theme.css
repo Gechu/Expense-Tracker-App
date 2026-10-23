@@ -96,6 +96,8 @@
 
   /* Tło paska bocznego (delikatnie jaśniejsze niż tło strony) */
   --rail-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015));
+  /* Wysuwany panel na mobile leży nad treścią, więc nie może być szklany */
+  --rail-solid-bg: #0e1218;
 
   /* Przyciemnienie za modalem + tło samego modala */
   --scrim: rgba(4, 6, 10, 0.62);
@@ -144,6 +146,7 @@
   --cta-shadow: 0 16px 34px -20px rgba(44, 143, 116, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 
   --rail-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.5));
+  --rail-solid-bg: #f4f6f7;
   --scrim: rgba(160, 175, 185, 0.5);
   --modal-bg: linear-gradient(155deg, rgba(255, 255, 255, 0.97), rgba(244, 247, 248, 0.95));
 
@@ -353,6 +356,37 @@ input:focus {
   color: var(--text);
   font-size: 14px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+/* Pole kwoty z przyciskiem +/- w środku (AmountInput) */
+.amount-wrap {
+  position: relative;
+}
+
+.amount-wrap .input {
+  padding-right: 58px;
+}
+
+.amount-sign-btn {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  min-width: 44px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--chip-border);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .amount-sign-btn:hover {
+    background: var(--hover-bg);
+  }
 }
 
 /* Delikatna poświata przy fokusie zamiast domyślnej niebieskiej ramki */
@@ -596,6 +630,7 @@ input:focus {
     width: 268px;
     max-width: 82vw;
     z-index: 40;
+    background: var(--rail-solid-bg);
     transform: translateX(-100%);
     transition: transform 0.25s ease;
     box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5);
@@ -927,6 +962,17 @@ input:focus {
   -webkit-backdrop-filter: blur(9px);
   animation: fade 0.2s ease both;
   overflow-y: auto;
+  /* Przewijanie wewnątrz długiego modala nie przechodzi na stronę pod spodem
+     po dojechaniu do końca (łańcuchowanie scrolla na dotyku). */
+  overscroll-behavior: contain;
+}
+
+/* Przy otwartym jakimkolwiek modalu strona pod spodem nie przewija się.
+   Na mobile scrolluje się cała strona (body), więc blokujemy właśnie ją;
+   :has() działa w każdej aktualnej przeglądarce, a nie wymaga żadnego kodu
+   w poszczególnych modalach. */
+body:has(.scrim) {
+  overflow: hidden;
 }
 
 /* Osobne, przyciemnione tło za wysuwanym panelem bocznym na mobile (kliknięcie

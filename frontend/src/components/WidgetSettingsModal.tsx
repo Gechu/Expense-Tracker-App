@@ -9,6 +9,7 @@ import {
   type Widget,
 } from '../api/widgets'
 import type { Tab } from '../api/tabs'
+import AmountInput from './AmountInput'
 import CurrencySelect from './CurrencySelect'
 import FormulaBuilder, { isFormulaComplete, type ReferenceField } from './FormulaBuilder'
 import RateField from './RateField'
@@ -90,14 +91,7 @@ export default function WidgetSettingsModal({ widget, color, tabs, onClose, onCh
               <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
                 <label className="field" style={{ flex: 1 }}>
                   <span className="text-label">Kwota</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="input"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    required
-                  />
+                  <AmountInput value={amount} onChange={setAmount} required />
                 </label>
                 <RateField rate={rate} onChange={setRate} fromCurrency={fromCurrency} toCurrency={toCurrency} />
               </div>
